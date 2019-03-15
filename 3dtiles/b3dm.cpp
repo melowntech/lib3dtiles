@@ -33,7 +33,7 @@
 
 #include "jsoncpp/io.hpp"
 
-#include "./b3dm.hpp"
+#include "b3dm.hpp"
 
 namespace bin = utility::binaryio;
 

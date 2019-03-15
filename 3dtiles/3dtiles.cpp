@@ -34,7 +34,7 @@
 
 #include "jsoncpp/io.hpp"
 
-#include "./3dtiles.hpp"
+#include "3dtiles.hpp"
 
 namespace threedtiles {
 
