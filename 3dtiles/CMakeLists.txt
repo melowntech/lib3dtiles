@@ -2,7 +2,7 @@
 set(3dtiles_VERSION 1.0)
 
 define_module(LIBRARY 3dtiles=${3dtiles_VERSION}
-  DEPENDS gltf math=1.4 utility=1.26 dbglog>=1.4 imgproc=1.28
+  DEPENDS gltf math>=1.4 utility>=1.26 dbglog>=1.4 imgproc>=1.28
   Boost_FILESYSTEM Boost_IOSTREAMS
   )
 
