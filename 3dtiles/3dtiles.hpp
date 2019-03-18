@@ -100,7 +100,7 @@ struct Tile : CommonBase {
     typedef std::shared_ptr<Tile> pointer;
     typedef std::vector<pointer> list;
 
-    boost::optional<BoundingVolume> boundingVolume;
+    BoundingVolume boundingVolume;
     boost::optional<BoundingVolume> viewerRequestVolume;
     double geometricError;
     boost::optional<Refinement> refine;
@@ -139,6 +139,11 @@ void write(const boost::filesystem::path &path, const Tileset &tileset);
  */
 void update(boost::optional<BoundingVolume> &updated
             , const boost::optional<BoundingVolume> &updater);
+
+/** Read tileset JSON file from an output stream.
+ */
+void read(std::istream &is, Tileset &tileset
+          , const boost::filesystem::path &path = "UNKNOWN");
 
 } // namespace threedtiles
 

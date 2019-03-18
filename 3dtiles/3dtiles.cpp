@@ -25,6 +25,7 @@
  */
 
 #include <boost/lexical_cast.hpp>
+#include <boost/utility/in_place_factory.hpp>
 
 #include "dbglog/dbglog.hpp"
 
@@ -32,6 +33,7 @@
 #include "utility/streams.hpp"
 #include "utility/format.hpp"
 
+#include "jsoncpp/as.hpp"
 #include "jsoncpp/io.hpp"
 
 #include "3dtiles.hpp"
@@ -346,5 +348,219 @@ void Sphere::update(const Sphere&)
         << "Update of sphere bounding volume not implemented yet.";
 }
 
-} // namespace threedtiles
+namespace detail {
 
+void common(CommonBase &cb, const Json::Value &value)
+{
+    if (value.isMember("extensions")) {
+        const auto &extensions(value["extensions"]);
+        for (const auto &name : extensions.getMemberNames()) {
+            cb.extensions.insert(Extensions::value_type
+                                 (name, extensions[name]));
+        }
+    }
+    if (value.isMember("extras")) {
+        cb.extras = value["extras"];
+    }
+}
+
+template <typename T>
+void parse(boost::optional<T> &dst, const Json::Value &value
+           , const char *member);
+
+template <typename T>
+void parse(std::vector<T> &dst, const Json::Value &value
+           , const char *member);
+
+void parse(std::vector<std::string> &list, const Json::Value &value)
+{
+    if (!value.isArray()) {
+        LOGTHROW(err1, Json::Error)
+            << "Expected JSON array.";
+    }
+
+    for (const auto &item : value) {
+        if (!item.isString()) {
+            LOGTHROW(err1, Json::Error)
+                << "Expected JSON array of strings.";
+        }
+        list.push_back(item.asString());
+    }
+}
+
+void parse(std::vector<std::string> &list, const Json::Value &value
+           , const char *member)
+{
+    if (!value.isMember(member)) { return; }
+    parse(list, value["member"]);
+}
+
+void parse(Box &box, const Json::Value &value)
+{
+    if ((value.type() != Json::arrayValue) || (value.size() != 12)) {
+        LOGTHROW(err1, Json::Error)
+            << "Box doesn't have 12 elements (but" << value.size() << ").";
+    }
+
+    Json::get(box.center(0), value[0]);
+    Json::get(box.center(1), value[1]);
+    Json::get(box.center(2), value[2]);
+    Json::get(box.x(0), value[3]);
+    Json::get(box.x(1), value[4]);
+    Json::get(box.x(2), value[5]);
+    Json::get(box.y(0), value[6]);
+    Json::get(box.y(1), value[7]);
+    Json::get(box.y(2), value[8]);
+    Json::get(box.z(0), value[9]);
+    Json::get(box.z(1), value[10]);
+    Json::get(box.z(2), value[11]);
+}
+
+void parse(Region &region, const Json::Value &value)
+{
+    if ((value.type() != Json::arrayValue) || (value.size() != 6)) {
+        LOGTHROW(err1, Json::Error)
+            << "Region doesn't have 6 elements (but" << value.size() << ").";
+    }
+
+    Json::get(region.extents.ll(0), value[0]);
+    Json::get(region.extents.ll(1), value[1]);
+    Json::get(region.extents.ll(2), value[2]);
+    Json::get(region.extents.ur(0), value[3]);
+    Json::get(region.extents.ur(1), value[4]);
+    Json::get(region.extents.ur(2), value[5]);
+}
+
+void parse(Sphere &sphere, const Json::Value &value)
+{
+    if ((value.type() != Json::arrayValue) || (value.size() != 6)) {
+        LOGTHROW(err1, Json::Error)
+            << "Sphere doesn't have 4 elements (but" << value.size() << ").";
+    }
+
+    Json::get(sphere.center(0), value[0]);
+    Json::get(sphere.center(1), value[1]);
+    Json::get(sphere.center(2), value[2]);
+    Json::get(sphere.radius, value[3]);
+}
+
+void parse(BoundingVolume &bv, const Json::Value &value)
+{
+    if (value.isMember("box")) {
+        Box box;
+        parse(box, value["box"]);
+        bv = box;
+    } else if (value.isMember("region")) {
+        Region region;
+        parse(region, value["region"]);
+        bv = region;
+    } else if (value.isMember("spehre")) {
+        Sphere sphere;
+        parse(sphere, value["sphere"]);
+        bv = sphere;
+    }
+}
+
+void parse(Refinement &refinement, const Json::Value &value)
+{
+    refinement = boost::lexical_cast<Refinement>(value.asString());
+}
+
+void parse(math::Matrix4 &matrix, const Json::Value &value)
+{
+    if ((value.type() != Json::arrayValue) || (value.size() != 16)) {
+        LOGTHROW(err1, Json::Error)
+            << "Transformation matrix doesn't have 16 elements (but"
+            << value.size() << ").";
+    }
+
+    // read matrix as a column major order
+    for (int i(0), column(0); column < 4; ++column) {
+        for (int row(0); row < 4; ++row, ++i) {
+            matrix(row, column) = value[i].asDouble();
+        }
+    }
+}
+
+void parse(TileContent &content, const Json::Value &value)
+{
+    common(content, value);
+    // support both 1.0 uri and 0.0 url
+    Json::get(content.uri, value, { "uri", "url" });
+    parse(content.boundingVolume, value, "boundingVolume");
+}
+
+void parse(Tile &tile, const Json::Value &value)
+{
+    common(tile, value);
+    parse(tile.boundingVolume, value["boundingVolume"]);
+
+    parse(tile.viewerRequestVolume, value, "viewerRequestVolume");
+    Json::get(tile.geometricError, value, "geometricError");
+    parse(tile.refine, value, "refine");
+    parse(tile.transform, value, "transform");
+    parse(tile.content, value, "content");
+    parse(tile.children, value, "children");
+}
+
+void parse(std::vector<Tile::pointer> &tiles, const Json::Value &value)
+{
+    if (!value.isArray()) {
+        LOGTHROW(err1, Json::Error)
+            << "Expected JSON array.";
+    }
+
+    for (const auto &item : value) {
+        tiles.push_back(std::make_shared<Tile>());
+        parse(*tiles.back(), item);
+    }
+}
+
+void parse(Asset &asset, const Json::Value &value)
+{
+    Json::get(asset.version, value, "version");
+    Json::get(asset.tilesetVersion, value, "tilesetVersion");
+    // TODO: gltfUpAxis (version 0.0)
+}
+
+void parse(Tileset &tileset, const Json::Value &value)
+{
+    common(tileset, value);
+
+    parse(tileset.asset, value["asset"]);
+    // TODO: properties
+    parse(*(tileset.root = std::make_shared<Tile>()), value["root"]);
+    Json::get(tileset.geometricError, value, "geometricError");
+
+    parse(tileset.extensionsUsed, value, "extensionsUsed");
+    parse(tileset.extensionsRequired, value, "extensionsRequired");
+}
+
+template <typename T>
+void parse(boost::optional<T> &dst, const Json::Value &value
+           , const char *member)
+{
+    if (value.isMember(member)) {
+        parse(*(dst = boost::in_place()), value[member]);
+    }
+}
+
+template <typename T>
+void parse(std::vector<T> &dst, const Json::Value &value
+           , const char *member)
+{
+    if (value.isMember(member)) {
+        parse(dst, value[member]);
+    }
+}
+
+} // namespace detail
+
+void read(std::istream &is, Tileset &tileset
+          , const boost::filesystem::path &path)
+{
+    auto content(Json::read(is, path, "3D Tileset"));
+    detail::parse(tileset, content);
+}
+
+} // namespace threedtiles

@@ -38,6 +38,12 @@ namespace constants {
 const std::string TilesetJson("tileset.json");
 } // namespace constants
 
+inline const fs::path& coalesce(const boost::optional<fs::path> &opt
+                                , const fs::path &dflt)
+{
+    return opt ? *opt : dflt;
+}
+
 } // namespace
 
 Archive::Archive(const fs::path &root, const std::string &mime)
@@ -45,18 +51,25 @@ Archive::Archive(const fs::path &root, const std::string &mime)
                , roarchive::OpenOptions().setHint(constants::TilesetJson)
                .setInlineHint('#')
                .setMime(mime))
-      // TODO: load tileset json
+    , tileset_(tileset(coalesce(archive_.usedHint(), constants::TilesetJson)))
 {}
 
 Archive::Archive(roarchive::RoArchive &archive)
     : archive_(archive.applyHint(constants::TilesetJson))
-      // TODO: load tileset json
+    , tileset_(tileset(constants::TilesetJson))
 {
 }
 
 roarchive::IStream::pointer Archive::istream(const fs::path &path) const
 {
     return archive_.istream(path);
+}
+
+Tileset Archive::tileset(const boost::filesystem::path &path) const
+{
+    Tileset ts;
+    read(*istream(path), ts, path);
+    return ts;
 }
 
 } // namespace threedtiles

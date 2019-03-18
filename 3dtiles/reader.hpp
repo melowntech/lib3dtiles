@@ -31,6 +31,8 @@
 
 #include "roarchive/roarchive.hpp"
 
+#include "3dtiles.hpp"
+
 namespace threedtiles {
 
 /** 3D Tiles archive reader
@@ -45,8 +47,17 @@ public:
     roarchive::IStream::pointer
     istream(const boost::filesystem::path &path) const;
 
+    /** Root tileset.
+     */
+    const Tileset& tileset() const { return tileset_; }
+
+    /** Read additional tileset file.
+     */
+    Tileset tileset(const boost::filesystem::path &path) const;
+
 private:
     roarchive::RoArchive archive_;
+    Tileset tileset_;
 };
 
 } // namespace threedtiles
