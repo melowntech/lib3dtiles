@@ -32,6 +32,7 @@
 #include "utility/base64.hpp"
 #include "utility/streams.hpp"
 #include "utility/format.hpp"
+#include "utility/uri.hpp"
 
 #include "jsoncpp/as.hpp"
 #include "jsoncpp/io.hpp"
@@ -554,6 +555,17 @@ void parse(std::vector<T> &dst, const Json::Value &value
     }
 }
 
+void resolveUris(const Tile::pointer &root, const utility::Uri &tilesetUri)
+{
+    if (auto &content = root->content) {
+        content->uri = str(tilesetUri.resolve(utility::Uri(content->uri)));
+    }
+
+    for (const auto child : root->children) {
+        resolveUris(child, tilesetUri);
+    }
+}
+
 } // namespace detail
 
 void read(std::istream &is, Tileset &tileset
@@ -561,6 +573,9 @@ void read(std::istream &is, Tileset &tileset
 {
     auto content(Json::read(is, path, "3D Tileset"));
     detail::parse(tileset, content);
+    if (!path.empty()) {
+        detail::resolveUris(tileset.root, path.string());
+    }
 }
 
 } // namespace threedtiles

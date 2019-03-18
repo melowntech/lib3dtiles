@@ -24,11 +24,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "dbglog/dbglog.hpp"
+
+#include "utility/uri.hpp"
+#include "utility/openmp.hpp"
 
 #include "reader.hpp"
 
 namespace fs = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace threedtiles {
 
@@ -46,17 +52,19 @@ inline const fs::path& coalesce(const boost::optional<fs::path> &opt
 
 } // namespace
 
-Archive::Archive(const fs::path &root, const std::string &mime)
+Archive::Archive(const fs::path &root, const std::string &mime
+                 , bool includeExternal)
     : archive_(root
                , roarchive::OpenOptions().setHint(constants::TilesetJson)
                .setInlineHint('#')
                .setMime(mime))
-    , tileset_(tileset(coalesce(archive_.usedHint(), constants::TilesetJson)))
+    , tileset_(tileset(coalesce(archive_.usedHint(), constants::TilesetJson)
+                       , includeExternal))
 {}
 
-Archive::Archive(roarchive::RoArchive &archive)
+Archive::Archive(roarchive::RoArchive &archive, bool includeExternal)
     : archive_(archive.applyHint(constants::TilesetJson))
-    , tileset_(tileset(constants::TilesetJson))
+    , tileset_(tileset(constants::TilesetJson, includeExternal))
 {
 }
 
@@ -65,10 +73,53 @@ roarchive::IStream::pointer Archive::istream(const fs::path &path) const
     return archive_.istream(path);
 }
 
-Tileset Archive::tileset(const boost::filesystem::path &path) const
+namespace {
+
+void include(const Archive &archive, Tile::pointer &root)
+{
+    if (!root->children.empty()) {
+        // non-empty children
+        for (auto &child : root->children) {
+            include(archive, child);
+        }
+    } else if (root->content) {
+        if (utility::Uri(root->content->uri).absolute()) {
+            // we are unable to include non-local data
+            return;
+        }
+
+        // some content, recurse to external tileset
+        if (ba::iends_with(root->content->uri, ".json")) {
+            UTILITY_OMP(task shared(archive, root))
+            {
+                // TODO: merge tileset metadata
+                root = archive.tileset(root->content->uri).root;
+                include(archive, root);
+            }
+        }
+    }
+}
+
+} // namespace
+
+Tileset Archive::tileset(const boost::filesystem::path &path
+                         , bool includeExternal) const
 {
     Tileset ts;
-    read(*istream(path), ts, path);
+    if (!includeExternal) {
+        read(*istream(path), ts, path);
+        return ts;
+    }
+
+    UTILITY_OMP(parallel shared(ts, path))
+    {
+        UTILITY_OMP(single)
+        {
+            read(*istream(path), ts, path);
+            include(*this, ts.root);
+        }
+    }
+
     return ts;
 }
 

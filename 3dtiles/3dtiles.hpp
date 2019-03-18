@@ -141,9 +141,11 @@ void update(boost::optional<BoundingVolume> &updated
             , const boost::optional<BoundingVolume> &updater);
 
 /** Read tileset JSON file from an output stream.
+ *
+ *  Path is used to resolve relative paths to absolute paths.
  */
 void read(std::istream &is, Tileset &tileset
-          , const boost::filesystem::path &path = "UNKNOWN");
+          , const boost::filesystem::path &path = "");
 
 } // namespace threedtiles
 

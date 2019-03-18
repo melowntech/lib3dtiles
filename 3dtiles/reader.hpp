@@ -39,8 +39,9 @@ namespace threedtiles {
  */
 class Archive {
 public:
-    Archive(const boost::filesystem::path &root, const std::string &mime = "");
-    Archive(roarchive::RoArchive &archive);
+    Archive(const boost::filesystem::path &root, const std::string &mime = ""
+            , bool includeExternal = false);
+    Archive(roarchive::RoArchive &archive, bool includeExternal = false);
 
     /** Generic I/O.
      */
@@ -53,7 +54,8 @@ public:
 
     /** Read additional tileset file.
      */
-    Tileset tileset(const boost::filesystem::path &path) const;
+    Tileset tileset(const boost::filesystem::path &path
+                    , bool includeExternal = false) const;
 
 private:
     roarchive::RoArchive archive_;
