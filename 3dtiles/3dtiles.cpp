@@ -420,7 +420,7 @@ void parse(Box &box, const Json::Value &value)
 {
     if ((value.type() != Json::arrayValue) || (value.size() != 12)) {
         LOGTHROW(err1, Json::Error)
-            << "Box doesn't have 12 elements (but" << value.size() << ").";
+            << "Box doesn't have 12 elements (but " << value.size() << ").";
     }
 
     Json::get(box.center(0), value[0]);
@@ -441,7 +441,7 @@ void parse(Region &region, const Json::Value &value)
 {
     if ((value.type() != Json::arrayValue) || (value.size() != 6)) {
         LOGTHROW(err1, Json::Error)
-            << "Region doesn't have 6 elements (but" << value.size() << ").";
+            << "Region doesn't have 6 elements (but " << value.size() << ").";
     }
 
     Json::get(region.extents.ll(0), value[0]);
@@ -454,9 +454,9 @@ void parse(Region &region, const Json::Value &value)
 
 void parse(Sphere &sphere, const Json::Value &value)
 {
-    if ((value.type() != Json::arrayValue) || (value.size() != 6)) {
+    if ((value.type() != Json::arrayValue) || (value.size() != 4)) {
         LOGTHROW(err1, Json::Error)
-            << "Sphere doesn't have 4 elements (but" << value.size() << ").";
+            << "Sphere doesn't have 4 elements (but " << value.size() << ").";
     }
 
     Json::get(sphere.center(0), value[0]);
@@ -475,7 +475,7 @@ void parse(BoundingVolume &bv, const Json::Value &value)
         Region region;
         parse(region, value["region"]);
         bv = region;
-    } else if (value.isMember("spehre")) {
+    } else if (value.isMember("sphere")) {
         Sphere sphere;
         parse(sphere, value["sphere"]);
         bv = sphere;
