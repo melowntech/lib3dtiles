@@ -53,6 +53,13 @@ template <typename T>
 void build(Json::Value &object, const char *name
            , const boost::optional<T> &value);
 
+/** We do not support optional BoundingVolume
+ */
+template <>
+void build<BoundingVolume>(Json::Value &object, const char *name
+                           , const boost::optional<BoundingVolume> &value)
+= delete;
+
 template <typename T>
 void build(Json::Value &object, const char *name
            , const std::shared_ptr<T> &value);
@@ -168,8 +175,18 @@ void build(Json::Value &value, const BoundingVolume &bv)
             array.append(s.center(2));
             array.append(s.radius);
         }
+
+        void operator()(const boost::blank&) {
+            LOGTHROW(err2, std::runtime_error)
+                << "Invalud bounding volume cannot be serialized.";
+        }
     } builder(value);
     boost::apply_visitor(builder, bv);
+}
+
+void build(Json::Value &value, const char *name, const BoundingVolume &bv)
+{
+    if (valid(bv)) { build(value[name], bv); }
 }
 
 void build(Json::Value &value, const TileContent &content)
@@ -254,7 +271,7 @@ void build(Json::Value &object, const char *name
 void build(Json::Value &value, const Tile &tile)
 {
     common(value, tile);
-    build(value, "boundingVolume", tile.boundingVolume);
+    build(value["boundingVolume"], tile.boundingVolume);
     build(value, "viewerRequestVolume", tile.viewerRequestVolume);
     build(value["geometricError"], tile.geometricError);
     build(value, "refine", tile.refine);
@@ -316,19 +333,22 @@ void write(const boost::filesystem::path &path, const Tileset &tileset)
     f.close();
 }
 
-void update(boost::optional<BoundingVolume> &updated
-            , const boost::optional<BoundingVolume> &updater)
+void update(BoundingVolume &updated, const BoundingVolume &updater)
 {
-    if (!updater) { return; }
+    if (!valid(updater)) {
+        // invalid updater -> no-op
+        return;
+    }
 
-    if (!updated) {
+    if (!valid(updated)) {
+        // invalid updated -> copy
         updated = updater;
         return;
     }
 
-    if (detail::update<Box>(*updated, *updater)) { return; }
-    if (detail::update<Region>(*updated, *updater)) { return; }
-    if (detail::update<Sphere>(*updated, *updater)) { return; }
+    if (detail::update<Box>(updated, updater)) { return; }
+    if (detail::update<Region>(updated, updater)) { return; }
+    if (detail::update<Sphere>(updated, updater)) { return; }
 }
 
 void Box::update(const Box&)
@@ -459,6 +479,19 @@ void parse(BoundingVolume &bv, const Json::Value &value)
         Sphere sphere;
         parse(sphere, value["sphere"]);
         bv = sphere;
+    } else {
+        LOGTHROW(err1, Json::Error)
+            << "Invalid boundingVolume.";
+    }
+}
+
+/** Bounding volume may be (by default) invalid, so here comes special
+ *  "optionsl" handling.
+ */
+void parse(BoundingVolume &bv, const Json::Value &value, const char *member)
+{
+    if (value.isMember(member)) {
+        parse(bv, value[member]);
     }
 }
 

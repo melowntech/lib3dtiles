@@ -80,7 +80,15 @@ struct Sphere : CommonBase {
     void update(const Sphere &other);
 };
 
-using BoundingVolume = boost::variant<Box, Region, Sphere>;
+/** Bounding volume. Blank when not filled yet. Tile with blank bounding volume
+ *  cannot be serialized.
+ *
+ *  boost::blank must stay first template argument otherwise
+ *  valid(BoundingVolume) would stop working
+ */
+using BoundingVolume = boost::variant<boost::blank, Box, Region, Sphere>;
+
+inline bool valid(const BoundingVolume &bv) { return bv.which(); }
 
 struct Property : CommonBase {
     double minimum;
@@ -92,7 +100,9 @@ struct Property : CommonBase {
 using Properties = std::map<std::string, Property>;
 
 struct TileContent : CommonBase {
-    boost::optional<BoundingVolume> boundingVolume;
+    /** Bounding volume can be invalid.
+     */
+    BoundingVolume boundingVolume;
     std::string uri;
 };
 
@@ -101,7 +111,7 @@ struct Tile : CommonBase {
     typedef std::vector<pointer> list;
 
     BoundingVolume boundingVolume;
-    boost::optional<BoundingVolume> viewerRequestVolume;
+    BoundingVolume viewerRequestVolume;
     double geometricError;
     boost::optional<Refinement> refine;
     boost::optional<math::Matrix4> transform; // serialize as column major!
@@ -137,8 +147,7 @@ void write(const boost::filesystem::path &path, const Tileset &tileset);
 /** Updates one volume from the other.
  *  If updated is valid then it has to be of the same type as the updater.
  */
-void update(boost::optional<BoundingVolume> &updated
-            , const boost::optional<BoundingVolume> &updater);
+void update(BoundingVolume &updated, const BoundingVolume &updater);
 
 /** Read tileset JSON file from an output stream.
  *
