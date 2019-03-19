@@ -29,7 +29,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "utility/base64.hpp"
+#include "utility/cppversion.hpp"
 #include "utility/streams.hpp"
 #include "utility/format.hpp"
 #include "utility/uri.hpp"
@@ -62,7 +62,7 @@ void build<BoundingVolume>(Json::Value &object, const char *name
 
 template <typename T>
 void build(Json::Value &object, const char *name
-           , const std::shared_ptr<T> &value);
+           , const std::unique_ptr<T> &value);
 
 template <typename T>
 void build(Json::Value &value, const std::vector<T> &list);
@@ -225,13 +225,13 @@ void build(Json::Value &object, const char *name
 
 template <typename T>
 void build(Json::Value &object, const char *name
-           , const std::shared_ptr<T> &value)
+           , const std::unique_ptr<T> &value)
 {
     if (value) { build(object[name], *value); }
 }
 
 template <typename T>
-void build(Json::Value &object, const std::shared_ptr<T> &value)
+void build(Json::Value &object, const std::unique_ptr<T> &value)
 {
     build(object, *value);
 }
@@ -545,7 +545,7 @@ void parse(std::vector<Tile::pointer> &tiles, const Json::Value &value)
     }
 
     for (const auto &item : value) {
-        tiles.push_back(std::make_shared<Tile>());
+        tiles.push_back(std::make_unique<Tile>());
         parse(*tiles.back(), item);
     }
 }
@@ -563,7 +563,7 @@ void parse(Tileset &tileset, const Json::Value &value)
 
     parse(tileset.asset, value["asset"]);
     // TODO: properties
-    parse(*(tileset.root = std::make_shared<Tile>()), value["root"]);
+    parse(*(tileset.root = std::make_unique<Tile>()), value["root"]);
     Json::get(tileset.geometricError, value, "geometricError");
 
     parse(tileset.extensionsUsed, value, "extensionsUsed");
@@ -594,7 +594,7 @@ void resolveUris(const Tile::pointer &root, const utility::Uri &tilesetUri)
         content->uri = str(tilesetUri.resolve(utility::Uri(content->uri)));
     }
 
-    for (const auto child : root->children) {
+    for (const auto &child : root->children) {
         resolveUris(child, tilesetUri);
     }
 }

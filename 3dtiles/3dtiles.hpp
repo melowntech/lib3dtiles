@@ -107,7 +107,7 @@ struct TileContent : CommonBase {
 };
 
 struct Tile : CommonBase {
-    typedef std::shared_ptr<Tile> pointer;
+    typedef std::unique_ptr<Tile> pointer;
     typedef std::vector<pointer> list;
 
     BoundingVolume boundingVolume;
