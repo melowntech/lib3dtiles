@@ -24,8 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef threedtiles_b3dm_hpp_included_
-#define threedtiles_b3dm_hpp_included_
+#ifndef threedtiles_reader_hpp_included_
+#define threedtiles_reader_hpp_included_
 
 #include "geometry/mesh.hpp"
 
@@ -64,4 +64,4 @@ private:
 
 } // namespace threedtiles
 
-#endif // threedtiles_b3dm_hpp_included_
+#endif // threedtiles_reader_hpp_included_

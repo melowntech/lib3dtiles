@@ -33,17 +33,51 @@
 
 namespace threedtiles {
 
+struct BatchedModel {
+    gltf::Model model;
+    math::Point3 rtcCenter;
+};
+
 /** Write a glTF archive as a b3dm file.
  */
-void b3dm(std::ostream &os, const gltf::GLTF &ga
+void b3dm(std::ostream &os, const BatchedModel &model
+          , const boost::filesystem::path &srcDir);
+
+/** Write a glTF archive as a b3dm file.
+ */
+void b3dm(const boost::filesystem::path &path, const BatchedModel &model
+          , const boost::filesystem::path &srcDir);
+
+/** Write a glTF archive as a b3dm file.
+ */
+void b3dm(std::ostream &os, const gltf::Model &model
           , const boost::filesystem::path &srcDir
           , const math::Point3 &rtcCenter = math::Point3());
 
 /** Write a glTF archive as a b3dm file.
  */
-void b3dm(const boost::filesystem::path &path, const gltf::GLTF &ga
+void b3dm(const boost::filesystem::path &path, const gltf::Model &model
           , const boost::filesystem::path &srcDir
           , const math::Point3 &rtcCenter = math::Point3());
+
+/** Read a glTF archive from a b3dm file
+ */
+BatchedModel b3dm(std::istream &is
+                  , const boost::filesystem::path &path = "UNKNOWN");
+
+// inlines
+
+inline void b3dm(std::ostream &os, const BatchedModel &model
+                 , const boost::filesystem::path &srcDir)
+{
+    b3dm(os, model.model, srcDir, model.rtcCenter);
+}
+
+inline void b3dm(const boost::filesystem::path &path, const BatchedModel &model
+                 , const boost::filesystem::path &srcDir)
+{
+    b3dm(path, model.model, srcDir, model.rtcCenter);
+}
 
 } // namespace threedtiles
 

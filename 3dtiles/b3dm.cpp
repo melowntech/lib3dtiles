@@ -25,6 +25,10 @@
  */
 
 #include <sstream>
+#include <algorithm>
+
+#include <boost/iostreams/stream_buffer.hpp>
+#include <boost/iostreams/device/array.hpp>
 
 #include "dbglog/dbglog.hpp"
 
@@ -36,10 +40,13 @@
 #include "b3dm.hpp"
 
 namespace bin = utility::binaryio;
+namespace bio = boost::iostreams;
 
 namespace threedtiles {
 
 namespace detail {
+
+const char MAGIC[4] = { 'b', '3', 'd', 'm' };
 
 struct Header {
     std::uint32_t version = 1;
@@ -56,7 +63,7 @@ struct Header {
 
 void write(std::ostream &os, const Header &header)
 {
-    os << "b3dm";
+    bin::write(os, MAGIC);
     bin::write<std::uint32_t>(os, header.version);
     bin::write<std::uint32_t>(os, header.byteLength);
     bin::write<std::uint32_t>(os, header.featureTableJSONByteLength);
@@ -65,14 +72,12 @@ void write(std::ostream &os, const Header &header)
     bin::write<std::uint32_t>(os, header.batchTableBinaryByteLength);
 }
 
-void pad(std::ostream &os, char chr, int padding = 8)
+template <int padding = 8>
+void pad(std::ostream &os, char chr = ' ')
 {
-    const std::size_t size(os.tellp());
-    const auto rem(size % padding);
-    if (!rem) { return; }
-
-    padding -= rem;
-    while (padding--) { os << chr; }
+    if (const auto rem = std::size_t(os.tellp()) % padding) {
+        std::fill_n(std::ostream_iterator<char>(os), padding - rem, chr);
+    }
 }
 
 void featureTable(std::ostream &os
@@ -96,7 +101,7 @@ void featureTable(std::ostream &os
 
 /** Write a glTF archive as a b3dm file.
  */
-void b3dm(std::ostream &os, const gltf::GLTF &ga
+void b3dm(std::ostream &os, const gltf::Model &model
           , const boost::filesystem::path &srcDir
           , const math::Point3 &rtcCenter)
 {
@@ -110,7 +115,7 @@ void b3dm(std::ostream &os, const gltf::GLTF &ga
 
     // serialize and measure GLB archive
     std::stringstream gs;
-    gltf::glb(gs, ga, srcDir);
+    gltf::glb(gs, model, srcDir);
     header.byteLength += gs.tellp();
 
     detail::write(os, header);
@@ -121,14 +126,94 @@ void b3dm(std::ostream &os, const gltf::GLTF &ga
 
 /** Write a glTF archive as a b3dm file.
  */
-void b3dm(const boost::filesystem::path &path, const gltf::GLTF &ga
+void b3dm(const boost::filesystem::path &path, const gltf::Model &model
           , const boost::filesystem::path &srcDir
           , const math::Point3 &rtcCenter)
 {
     LOG(info1) << "Generating b3dm in " << path  << ".";
     utility::ofstreambuf os(path.string());
-    b3dm(os, ga, srcDir, rtcCenter);
+    b3dm(os, model, srcDir, rtcCenter);
     os.close();
+}
+
+namespace detail {
+
+void read(std::istream &is, Header &header
+          , const boost::filesystem::path &path)
+{
+    char magic[4];
+    bin::read(is, magic);
+    if (std::memcmp(magic, MAGIC, sizeof(MAGIC))) {
+        LOGTHROW(err2, std::runtime_error)
+            << "File " << path << " is not a Batched 3D Model file.";
+    }
+
+    header.version = bin::read<std::uint32_t>(is);
+    header.byteLength = bin::read<std::uint32_t>(is);
+    header.featureTableJSONByteLength = bin::read<std::uint32_t>(is);
+    header.featureTableBinaryByteLength = bin::read<std::uint32_t>(is);
+    header.batchTableJSONByteLength = bin::read<std::uint32_t>(is);
+    header.batchTableBinaryByteLength = bin::read<std::uint32_t>(is);
+}
+
+void readFeatureTable(std::istream &is, const Header &header
+                      , const boost::filesystem::path &path
+                      , math::Point3 &rtcCenter)
+{
+    if (!header.featureTableJSONByteLength) { return; }
+
+    Json::Value ft;
+    {
+        // read feature table to temporary buffer
+        std::vector<char> buf(header.featureTableJSONByteLength);
+        bin::read(is, buf);
+
+        // wrap buffer to a stream
+        bio::stream_buffer<bio::array_source>
+            buffer(buf.data(), buf.data() + buf.size());
+        std::istream s(&buffer);
+        s.exceptions(std::ios::badbit | std::ios::failbit);
+
+        // and read
+        if (!read(s, ft)) {
+            LOGTHROW(err2, std::runtime_error)
+                << "Unable to read JSON feature table from file "
+                << path << ".";
+        }
+    }
+
+    if (ft.isMember("RTC_CENTER")) {
+        const auto &rc(ft["RTC_CENTER"]);
+        if (rc.size() != 3) {
+            LOGTHROW(err2, std::runtime_error)
+                << "Feature table from file "
+                << path << " has malformed RTC_CENTER.";
+        }
+        rtcCenter(0) = rc[0].asDouble();
+        rtcCenter(1) = rc[1].asDouble();
+        rtcCenter(2) = rc[2].asDouble();
+    }
+}
+
+} // namespace detail
+
+BatchedModel b3dm(std::istream &is, const boost::filesystem::path &path)
+{
+    BatchedModel model;
+
+    detail::Header header;
+    read(is, header, path);
+
+    readFeatureTable(is, header, path, model.rtcCenter);
+
+    // ignore rest of tables
+    is.ignore(header.featureTableBinaryByteLength
+              + header.batchTableJSONByteLength
+              + header.batchTableBinaryByteLength);
+
+    model.model = gltf::glb(is, path);
+
+    return model;
 }
 
 } // namespace threedtiles
