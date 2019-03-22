@@ -27,9 +27,9 @@
 #ifndef threedtiles_reader_hpp_included_
 #define threedtiles_reader_hpp_included_
 
-#include "geometry/mesh.hpp"
-
 #include "roarchive/roarchive.hpp"
+
+#include "gltf/meshloader.hpp"
 
 #include "3dtiles.hpp"
 
@@ -47,6 +47,11 @@ public:
      */
     roarchive::IStream::pointer
     istream(const boost::filesystem::path &path) const;
+
+    /** Feed triangle mesh into parser from a b3dm file.
+     */
+    void loadMesh(gltf::MeshLoader &loader
+                  , const boost::filesystem::path &path) const;
 
     /** Root tileset.
      */

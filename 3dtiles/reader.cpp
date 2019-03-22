@@ -32,6 +32,7 @@
 #include "utility/openmp.hpp"
 
 #include "reader.hpp"
+#include "b3dm.hpp"
 
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
@@ -102,8 +103,7 @@ void include(const Archive &archive, Tile::pointer &root)
 
 } // namespace
 
-Tileset Archive::tileset(const boost::filesystem::path &path
-                         , bool includeExternal) const
+Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
 {
     Tileset ts;
     if (!includeExternal) {
@@ -121,6 +121,15 @@ Tileset Archive::tileset(const boost::filesystem::path &path
     }
 
     return ts;
+}
+
+void Archive::loadMesh(gltf::MeshLoader &loader
+                       , const boost::filesystem::path &path) const
+{
+    auto model(b3dm(*istream(path), path));
+    // TODO: add RTC center shift to trafo
+    auto trafo(gltf::yup2zup());
+    decodeMesh(loader, model.model, trafo);
 }
 
 } // namespace threedtiles
