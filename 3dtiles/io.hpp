@@ -24,54 +24,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef threedtiles_reader_hpp_included_
-#define threedtiles_reader_hpp_included_
+#ifndef tgreedtiles_io_hpp_included_
+#define tgreedtiles_io_hpp_included_
 
-#include "roarchive/roarchive.hpp"
+#include <iostream>
 
-#include "gltf/meshloader.hpp"
+#include "utility/streams.hpp"
 
 #include "3dtiles.hpp"
 
 namespace threedtiles {
 
-/** 3D Tiles archive reader
- */
-class Archive {
-public:
-    Archive(const boost::filesystem::path &root, const std::string &mime = ""
-            , bool includeExternal = false);
-    Archive(roarchive::RoArchive &archive, bool includeExternal = false);
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits> &os, const TilePath &path)
+{
+    return os << utility::join(path.path, "-", "root");
+}
 
-    /** Generic I/O.
-     */
-    roarchive::IStream::pointer
-    istream(const boost::filesystem::path &path) const;
+} // namespace 3dtiles
 
-    /** Feed triangle mesh into parser from a b3dm file.
-     */
-    void loadMesh(gltf::MeshLoader &loader
-                  , const boost::filesystem::path &path) const;
-
-    /** Root tileset.
-     */
-    const Tileset& tileset() const { return tileset_; }
-
-    /** Number of tiles in root tileset.
-     */
-    std::size_t treeSize() const { return treeSize_; }
-
-    /** Read additional tileset file.
-     */
-    Tileset tileset(const boost::filesystem::path &path
-                    , bool includeExternal = false) const;
-
-private:
-    const roarchive::RoArchive archive_;
-    const Tileset tileset_;
-    const std::size_t treeSize_;
-};
-
-} // namespace threedtiles
-
-#endif // threedtiles_reader_hpp_included_
+#endif // tgreedtiles_io_hpp_included_

@@ -117,6 +117,10 @@ struct Tile : CommonBase {
     boost::optional<math::Matrix4> transform; // serialize as column major!
     boost::optional<TileContent> content;
     Tile::list children;
+
+    /** Return number of tiles in subtree rooted in this tile.
+     */
+    std::size_t subtreeSize() const;
 };
 
 struct Asset : CommonBase {
@@ -155,6 +159,71 @@ void update(BoundingVolume &updated, const BoundingVolume &updater);
  */
 void read(std::istream &is, Tileset &tileset
           , const boost::filesystem::path &path = "");
+
+/** Path in tile tree.
+ */
+struct TilePath {
+    std::vector<int> path;
+    TilePath() { path.reserve(32); /* guesstimage */ }
+    int depth() const { return path.size(); }
+};
+
+/** Recursively traverses the tile tree starting at root and calls
+ *      op(const Tile &tile, const TilePath &path)
+ *  for every encountered tile.
+ */
+template <typename Op>
+void traverse(const Tile &root, Op op);
+
+/** Recursively traverses the tile tree starting at root and calls
+ *      op(Tile &tile, int depth)
+ *  for every encountered tile.
+ */
+template <typename Op>
+void traverse(Tile &root, Op op);
+
+// inlines
+
+namespace detail {
+
+template <typename TileT, typename Op>
+void traverse(TileT &root, Op op) {
+    struct Traverser {
+        Op op;
+        Traverser(Op op) : op(op) {}
+        void process(TileT &tile, TilePath &path) {
+            op(tile, path);
+
+            int i(0);
+            for (const auto &child : tile.children) {
+                path.path.push_back(i++);
+                process(*child, path);
+                path.path.pop_back();
+            }
+        }
+    } t(op);
+
+    TilePath path;
+    t.process(root, path);
+}
+
+} // namespace detail
+
+template <typename Op> void traverse(const Tile &root, Op op)
+{
+    detail::traverse(root, op);
+}
+
+template <typename Op> void traverse(Tile &root, Op op)
+{
+    detail::traverse(root, op);
+}
+
+inline std::size_t Tile::subtreeSize() const {
+    std::size_t count(0);
+    traverse(*this, [&count](const Tile&, const TilePath&) { ++count; });
+    return count;
+}
 
 } // namespace threedtiles
 

@@ -61,11 +61,13 @@ Archive::Archive(const fs::path &root, const std::string &mime
                .setMime(mime))
     , tileset_(tileset(coalesce(archive_.usedHint(), constants::TilesetJson)
                        , includeExternal))
+    , treeSize_(tileset_.root->subtreeSize())
 {}
 
 Archive::Archive(roarchive::RoArchive &archive, bool includeExternal)
     : archive_(archive.applyHint(constants::TilesetJson))
     , tileset_(tileset(constants::TilesetJson, includeExternal))
+    , treeSize_(tileset_.root->subtreeSize())
 {
 }
 
