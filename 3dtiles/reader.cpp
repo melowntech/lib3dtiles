@@ -36,6 +36,7 @@
 
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
+namespace ublas = boost::numeric::ublas;
 
 namespace threedtiles {
 
@@ -126,12 +127,20 @@ Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
 }
 
 void Archive::loadMesh(gltf::MeshLoader &loader
-                       , const boost::filesystem::path &path) const
+                       , const boost::filesystem::path &path
+                       , gltf::MeshLoader::DecodeOptions options) const
 {
     auto model(b3dm(*istream(path), path));
-    // TODO: add RTC center shift to trafo
-    auto trafo(gltf::yup2zup());
-    decodeMesh(loader, model.model, trafo);
+
+    // add rtc and Y-up to Z-up switch
+    math::Matrix4 rtc(ublas::identity_matrix<double>(4, 4));
+    rtc(0, 3) = model.rtcCenter(0);
+    rtc(1, 3) = model.rtcCenter(1);
+    rtc(2, 3) = model.rtcCenter(2);
+    options.trafo = prod(options.trafo, rtc);
+    options.trafo = prod(options.trafo, gltf::yup2zup());
+
+    decodeMesh(loader, model.model, options);
 }
 
 } // namespace threedtiles

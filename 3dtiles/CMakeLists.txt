@@ -14,7 +14,7 @@ endif()
 define_module(LIBRARY 3dtiles=${3dtiles_VERSION}
   DEPENDS
   ${3dtiles_EXTRA_DEPENDS}
-  gltf math>=1.4 utility>=1.31 dbglog>=1.4 imgproc>=1.28
+  jsoncpp>=2.3 gltf math>=1.4 utility>=1.31 dbglog>=1.4 imgproc>=1.28
   Boost_FILESYSTEM Boost_IOSTREAMS
   )
 
@@ -30,3 +30,7 @@ buildsys_library(3dtiles)
 
 target_link_libraries(3dtiles ${MODULE_LIBRARIES})
 buildsys_target_compile_definitions(3dtiles ${MODULE_DEFINITIONS})
+
+if(MODULE_service_FOUND)
+  add_subdirectory(tools EXCLUDE_FROM_ALL)
+endif()

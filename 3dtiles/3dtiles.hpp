@@ -176,6 +176,15 @@ template <typename Op>
 void traverse(const Tile &root, Op op);
 
 /** Recursively traverses the tile tree starting at root and calls
+ *      op(const Tile &tile, const TilePath &path)
+ *  for every encountered tile.
+ *
+ * Explicitly const version.
+ */
+template <typename Op>
+void ctraverse(const Tile &root, Op op);
+
+/** Recursively traverses the tile tree starting at root and calls
  *      op(Tile &tile, int depth)
  *  for every encountered tile.
  */
@@ -210,6 +219,11 @@ void traverse(TileT &root, Op op) {
 } // namespace detail
 
 template <typename Op> void traverse(const Tile &root, Op op)
+{
+    detail::traverse(root, op);
+}
+
+template <typename Op> void ctraverse(const Tile &root, Op op)
 {
     detail::traverse(root, op);
 }

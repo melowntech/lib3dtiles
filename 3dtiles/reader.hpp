@@ -51,7 +51,9 @@ public:
     /** Feed triangle mesh into parser from a b3dm file.
      */
     void loadMesh(gltf::MeshLoader &loader
-                  , const boost::filesystem::path &path) const;
+                  , const boost::filesystem::path &path
+                  , gltf::MeshLoader::DecodeOptions options
+                  = gltf::MeshLoader::DecodeOptions()) const;
 
     /** Root tileset.
      */
