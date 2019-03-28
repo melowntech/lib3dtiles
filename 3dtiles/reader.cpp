@@ -86,20 +86,23 @@ void include(const Archive &archive, Tile::pointer &root)
         for (auto &child : root->children) {
             include(archive, child);
         }
-    } else if (root->content) {
-        if (utility::Uri(root->content->uri).absolute()) {
-            // we are unable to include non-local data
-            return;
-        }
+        return;
+    }
 
-        // some content, recurse to external tileset
-        if (ba::iends_with(root->content->uri, ".json")) {
-            UTILITY_OMP(task shared(archive, root))
-            {
-                // TODO: merge tileset metadata
-                root = archive.tileset(root->content->uri).root;
-                include(archive, root);
-            }
+    if (!root->content) { return; }
+
+    if (utility::Uri(root->content->uri).absolute()) {
+        // we are unable to include non-local data
+        return;
+    }
+
+    // some content, recurse to external tileset
+    if (ba::iends_with(root->content->uri, ".json")) {
+        UTILITY_OMP(task shared(archive, root))
+        {
+            // TODO: merge tileset metadata
+            root = archive.tileset(root->content->uri).root;
+            include(archive, root);
         }
     }
 }

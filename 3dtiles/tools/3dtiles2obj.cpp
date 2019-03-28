@@ -180,6 +180,7 @@ struct MeshLoader : gltf::MeshLoader
             f.close();
         }
 
+        LOG(info3) << "Saving mesh to " << output << ".";
         saveAsObj(m, output / "mesh.obj", "mesh.mtl");
     }
 
@@ -197,11 +198,12 @@ int TDTiles2Obj::run()
     ctraverse(*archive.tileset().root
               , [&](const tdt::Tile &tile, const tdt::TilePath &path)
     {
+        if (!tile.content) { return; }
+
         const auto dir
             (output_ / boost::lexical_cast<std::string>
              (utility::join(path.path, "/")));
         fs::create_directories(dir);
-        LOG(info4) << "dir: " << dir;
 
         MeshLoader loader(dir);
         MeshLoader::DecodeOptions options;
