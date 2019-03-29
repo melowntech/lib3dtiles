@@ -206,6 +206,7 @@ int TDTiles2Obj::run()
 
         MeshLoader loader(dir);
         MeshLoader::DecodeOptions options;
+        options.trafo = *tile.transform;
         options.flipTc = true;
         archive.loadMesh(loader, tile.content->uri, options);
 
