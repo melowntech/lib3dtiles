@@ -36,7 +36,6 @@
 
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
-namespace ublas = boost::numeric::ublas;
 
 namespace threedtiles {
 
@@ -114,6 +113,7 @@ Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
     Tileset ts;
     if (!includeExternal) {
         read(*istream(path), ts, path);
+        absolutize(ts, path.string());
         return ts;
     }
 
@@ -122,6 +122,7 @@ Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
         UTILITY_OMP(single)
         {
             read(*istream(path), ts, path);
+            absolutize(ts, path.string());
             include(*this, ts.root);
         }
     }
@@ -136,11 +137,7 @@ void Archive::loadMesh(gltf::MeshLoader &loader
     auto model(b3dm(*istream(path), path));
 
     // add rtc and Y-up to Z-up switch
-    math::Matrix4 rtc(ublas::identity_matrix<double>(4, 4));
-    rtc(0, 3) = model.rtcCenter(0);
-    rtc(1, 3) = model.rtcCenter(1);
-    rtc(2, 3) = model.rtcCenter(2);
-    options.trafo = prod(options.trafo, rtc);
+    options.trafo = prod(options.trafo, math::translate(model.rtcCenter));
     options.trafo = prod(options.trafo, gltf::yup2zup());
 
     decodeMesh(loader, model.model, options);

@@ -48,7 +48,6 @@
 namespace po = boost::program_options;
 namespace bio = boost::iostreams;
 namespace fs = boost::filesystem;
-namespace ublas = boost::numeric::ublas;
 namespace tdt = threedtiles;
 
 namespace {

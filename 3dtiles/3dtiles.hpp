@@ -154,11 +154,18 @@ void write(const boost::filesystem::path &path, const Tileset &tileset);
 void update(BoundingVolume &updated, const BoundingVolume &updater);
 
 /** Read tileset JSON file from an output stream.
- *
- *  Path is used to resolve relative paths to absolute paths.
  */
 void read(std::istream &is, Tileset &tileset
           , const boost::filesystem::path &path = "");
+
+/** Resolves all relative URIs using provided base URI and distributes various
+ * inherited data to all tiles. Used to make tileset consistent after load.
+ *
+ *  \param tileset tileset to update
+ *  \param baseUri base URI
+ *  \return tileset itself, to allow call chaining
+ */
+Tileset& absolutize(Tileset &ts, const std::string &baseUri);
 
 /** Path in tile tree.
  */

@@ -29,6 +29,8 @@
 
 #include "dbglog/dbglog.hpp"
 
+#include "math/transform.hpp"
+
 #include "utility/cppversion.hpp"
 #include "utility/streams.hpp"
 #include "utility/format.hpp"
@@ -38,6 +40,8 @@
 #include "jsoncpp/io.hpp"
 
 #include "3dtiles.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace threedtiles {
 
@@ -178,7 +182,7 @@ void build(Json::Value &value, const BoundingVolume &bv)
 
         void operator()(const boost::blank&) {
             LOGTHROW(err2, std::runtime_error)
-                << "Invalud bounding volume cannot be serialized.";
+                << "Invalid bounding volume cannot be serialized.";
         }
     } builder(value);
     boost::apply_visitor(builder, bv);
@@ -588,27 +592,55 @@ void parse(std::vector<T> &dst, const Json::Value &value
     }
 }
 
-void resolveUris(const Tile::pointer &root, const utility::Uri &tilesetUri)
-{
-    if (auto &content = root->content) {
-        content->uri = str(tilesetUri.resolve(utility::Uri(content->uri)));
-    }
-
-    for (const auto &child : root->children) {
-        resolveUris(child, tilesetUri);
-    }
-}
-
 } // namespace detail
 
-void read(std::istream &is, Tileset &tileset
-          , const boost::filesystem::path &path)
+void read(std::istream &is, Tileset &tileset, const fs::path &path)
 {
     auto content(Json::read(is, path, "3D Tileset"));
     detail::parse(tileset, content);
-    if (!path.empty()) {
-        detail::resolveUris(tileset.root, path.string());
+
+}
+
+Tileset& absolutize(Tileset &ts, const std::string &baseUri)
+{
+    auto &root(*ts.root);
+
+    // sanity check
+    if (!root.refine) {
+        LOGTHROW(err2, std::runtime_error)
+            << "Root tile in tileset <" << baseUri
+            << "> has no refinement defined.";
     }
+
+    const utility::Uri base(baseUri);
+
+    // make sure root tile has a valid transformation matrix
+    if (!root.transform) {
+        root.transform = math::identity4();
+    }
+
+    traverse(*ts.root, [&](Tile &tile, const TilePath&)
+    {
+        // resolve URI
+        if (auto &content = tile.content) {
+            content->uri = str(base.resolve(utility::Uri(content->uri)));
+        }
+
+        // distribute refinement and transformation down the tree
+        for (auto &child : tile.children) {
+            if (!child->refine) { child->refine = tile.refine; }
+
+            if (child->transform) {
+                // compose transformation (child's trafor is applied first)
+                child->transform = prod(*tile.transform, *child->transform);
+            } else {
+                // distribute
+                child->transform = tile.transform;
+            }
+        }
+    });
+
+    return ts;
 }
 
 } // namespace threedtiles
