@@ -46,10 +46,10 @@ using ExtensionList = std::vector<std::string>;
 using Extension = boost::any;
 using Extensions = std::map<std::string, Extension>;
 
-UTILITY_GENERATE_ENUM(Refinement,
-                      ((replace)("REPLACE"))
-                      ((add)("ADD"))
-                      )
+UTILITY_GENERATE_ENUM_CI(Refinement,
+                         ((replace)("REPLACE"))
+                         ((add)("ADD"))
+                         )
 
 struct CommonBase {
     Extensions extensions;
@@ -197,6 +197,10 @@ void ctraverse(const Tile &root, Op op);
  */
 template <typename Op>
 void traverse(Tile &root, Op op);
+
+/** Deep copy, when needed.
+ */
+Tileset clone(const Tileset &ts);
 
 // inlines
 

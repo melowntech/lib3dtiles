@@ -59,20 +59,21 @@ Archive::Archive(const fs::path &root, const std::string &mime
                , roarchive::OpenOptions().setHint(constants::TilesetJson)
                .setInlineHint('#')
                .setMime(mime))
-    , tileset_(tileset(coalesce(archive_.usedHint(), constants::TilesetJson)
-                       , includeExternal))
+    , tilesetPath_(coalesce(archive_.usedHint(), constants::TilesetJson))
+    , tileset_(tileset(tilesetPath_, includeExternal))
     , treeSize_(tileset_.root->subtreeSize())
 {}
 
 Archive::Archive(roarchive::RoArchive &archive, bool includeExternal)
     : archive_(archive.applyHint(constants::TilesetJson))
-    , tileset_(tileset(constants::TilesetJson, includeExternal))
+    , tilesetPath_(coalesce(archive_.usedHint(), constants::TilesetJson))
+    , tileset_(tileset(tilesetPath_, includeExternal))
     , treeSize_(tileset_.root->subtreeSize())
-{
-}
+{}
 
 roarchive::IStream::pointer Archive::istream(const fs::path &path) const
 {
+    // TODO: check for remote URL and fail if archive is non-remote
     return archive_.istream(path);
 }
 
@@ -90,16 +91,10 @@ void include(const Archive &archive, Tile::pointer &root)
 
     if (!root->content) { return; }
 
-    if (utility::Uri(root->content->uri).absolute()) {
-        // we are unable to include non-local data
-        return;
-    }
-
     // some content, recurse to external tileset
     if (ba::iends_with(root->content->uri, ".json")) {
         UTILITY_OMP(task shared(archive, root))
         {
-            // TODO: merge tileset metadata
             root = archive.tileset(root->content->uri).root;
             include(archive, root);
         }
@@ -141,6 +136,11 @@ void Archive::loadMesh(gltf::MeshLoader &loader
     options.trafo = prod(options.trafo, gltf::yup2zup());
 
     decodeMesh(loader, model.model, options);
+}
+
+bool Archive::remote() const
+{
+    return archive_.handlesSchema("http") || archive_.handlesSchema("https");
 }
 
 } // namespace threedtiles

@@ -26,6 +26,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/utility/in_place_factory.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "dbglog/dbglog.hpp"
 
@@ -42,6 +43,7 @@
 #include "3dtiles.hpp"
 
 namespace fs = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace threedtiles {
 
@@ -534,10 +536,18 @@ void parse(Tile &tile, const Json::Value &value)
     parse(tile.boundingVolume, value["boundingVolume"]);
 
     parse(tile.viewerRequestVolume, value, "viewerRequestVolume");
-    Json::get(tile.geometricError, value, "geometricError");
+    parse(tile.content, value, "content");
+
+    // treat geometric-error as optional, do not warn if it seams that tile is
+    // an external tileset
+    if (!Json::getOpt(tile.geometricError, value, "geometricError")) {
+        if (!tile.content || !ba::iends_with(tile.content->uri, ".json")) {
+            LOG(warn2) << "Missing geometricError, skipping.";
+        }
+    }
+
     parse(tile.refine, value, "refine");
     parse(tile.transform, value, "transform");
-    parse(tile.content, value, "content");
     parse(tile.children, value, "children");
 }
 
@@ -641,6 +651,46 @@ Tileset& absolutize(Tileset &ts, const std::string &baseUri)
     });
 
     return ts;
+}
+
+namespace {
+
+void cloneInto(CommonBase &dst, const CommonBase &src)
+{
+    dst = src;
+}
+
+Tile::pointer clone(const Tile &tile)
+{
+    auto ntile(std::make_unique<Tile>());
+    cloneInto(*ntile, tile);
+
+    ntile->boundingVolume = tile.boundingVolume;
+    ntile->viewerRequestVolume = tile.viewerRequestVolume;
+    ntile->geometricError = tile.geometricError;
+    ntile->refine = tile.refine;
+    ntile->transform = tile.transform;
+    ntile->content = tile.content;
+
+    for (const auto &child : tile.children) {
+        ntile->children.push_back(clone(*child));
+    }
+
+    return ntile;
+}
+
+} // namespace
+
+Tileset clone(const Tileset &ts)
+{
+    Tileset nts;
+    nts.asset = ts.asset;
+    nts.properties = ts.properties;
+    nts.geometricError = ts.geometricError;
+    nts.root = clone(*ts.root);
+    nts.extensionsUsed = ts.extensionsUsed;
+    nts.extensionsRequired = ts.extensionsRequired;
+    return nts;
 }
 
 } // namespace threedtiles

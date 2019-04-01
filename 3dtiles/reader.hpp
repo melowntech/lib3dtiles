@@ -59,6 +59,18 @@ public:
      */
     const Tileset& tileset() const { return tileset_; }
 
+    const boost::filesystem::path& tilesetPath() const {
+        return tilesetPath_;
+    }
+
+    const boost::filesystem::path path(const boost::filesystem::path &path)
+        const
+    {
+        return archive_.path(path);
+    }
+
+    bool remote() const;
+
     /** Number of tiles in root tileset.
      */
     std::size_t treeSize() const { return treeSize_; }
@@ -70,6 +82,7 @@ public:
 
 private:
     const roarchive::RoArchive archive_;
+    const boost::filesystem::path tilesetPath_;
     const Tileset tileset_;
     const std::size_t treeSize_;
 };
