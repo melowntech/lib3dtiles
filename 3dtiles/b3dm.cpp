@@ -37,6 +37,8 @@
 
 #include "jsoncpp/io.hpp"
 
+#include "gltf/meshloader.hpp"
+
 #include "b3dm.hpp"
 
 namespace bin = utility::binaryio;
@@ -138,8 +140,18 @@ void b3dm(const boost::filesystem::path &path, const gltf::Model &model
 
 namespace detail {
 
-void read(std::istream &is, Header &header
-          , const boost::filesystem::path &path)
+typedef std::array<std::uint8_t, 4> Uint32Buffer;
+
+struct Legacy {
+    enum class Type { none, json, gltf };
+    Type type = Type::none;
+    Uint32Buffer buffer;
+};
+
+/** Reads b3dm header.
+ */
+Legacy read(std::istream &is, Header &header
+            , const boost::filesystem::path &path)
 {
     char magic[4];
     bin::read(is, magic);
@@ -152,8 +164,15 @@ void read(std::istream &is, Header &header
     header.byteLength = bin::read<std::uint32_t>(is);
     header.featureTableJSONByteLength = bin::read<std::uint32_t>(is);
     header.featureTableBinaryByteLength = bin::read<std::uint32_t>(is);
+
+    // OK, legacy format ends here, we have to deal with old data
+    // TODO: detect old format
+    Legacy legacy;
+
     header.batchTableJSONByteLength = bin::read<std::uint32_t>(is);
     header.batchTableBinaryByteLength = bin::read<std::uint32_t>(is);
+
+    return legacy;
 }
 
 void readFeatureTable(std::istream &is, const Header &header
@@ -202,7 +221,7 @@ BatchedModel b3dm(std::istream &is, const boost::filesystem::path &path)
     BatchedModel model;
 
     detail::Header header;
-    read(is, header, path);
+    const auto legacy(read(is, header, path));
 
     readFeatureTable(is, header, path, model.rtcCenter);
 
@@ -211,9 +230,28 @@ BatchedModel b3dm(std::istream &is, const boost::filesystem::path &path)
               + header.batchTableJSONByteLength
               + header.batchTableBinaryByteLength);
 
-    model.model = gltf::glb(is, path);
+    model.model = gltf::glb
+        (is, path, (legacy.type == detail::Legacy::Type::gltf));
 
     return model;
+}
+
+BatchedModel b3dm(const boost::filesystem::path &path)
+{
+    utility::ifstreambuf f(path.string());
+    auto model(b3dm(f, path));
+    f.close();
+    return model;
+}
+
+void loadMesh(gltf::MeshLoader &loader, const BatchedModel &model
+              , gltf::MeshLoader::DecodeOptions options)
+{
+    // add rtc and Y-up to Z-up switch
+    options.trafo = prod(options.trafo, math::translate(model.rtcCenter));
+    options.trafo = prod(options.trafo, gltf::yup2zup());
+
+    decodeMesh(loader, model.model, options);
 }
 
 } // namespace threedtiles

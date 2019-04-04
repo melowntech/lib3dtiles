@@ -17,3 +17,13 @@ add_executable(clone-3dtiles ${clone-3dtiles_SOURCES})
 target_link_libraries(clone-3dtiles ${MODULE_LIBRARIES})
 buildsys_target_compile_definitions(clone-3dtiles PRIVATE ${MODULE_DEFINITIONS})
 buildsys_binary(clone-3dtiles)
+
+define_module(BINARY b3dm2obj
+  DEPENDS geometry 3dtiles service imgproc
+  )
+
+set(b3dm2obj_SOURCES b3dm2obj.cpp)
+add_executable(b3dm2obj ${b3dm2obj_SOURCES})
+target_link_libraries(b3dm2obj ${MODULE_LIBRARIES})
+buildsys_target_compile_definitions(b3dm2obj PRIVATE ${MODULE_DEFINITIONS})
+buildsys_binary(b3dm2obj)

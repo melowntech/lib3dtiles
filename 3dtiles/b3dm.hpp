@@ -30,6 +30,7 @@
 #include <iosfwd>
 
 #include "gltf/gltf.hpp"
+#include "gltf/meshloader.hpp"
 
 namespace threedtiles {
 
@@ -64,6 +65,13 @@ void b3dm(const boost::filesystem::path &path, const gltf::Model &model
  */
 BatchedModel b3dm(std::istream &is
                   , const boost::filesystem::path &path = "UNKNOWN");
+
+/** Read a glTF archive from a b3dm file
+ */
+BatchedModel b3dm(const boost::filesystem::path &path);
+
+void loadMesh(gltf::MeshLoader &loader, const BatchedModel &model
+              , gltf::MeshLoader::DecodeOptions options);
 
 // inlines
 

@@ -127,15 +127,9 @@ Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
 
 void Archive::loadMesh(gltf::MeshLoader &loader
                        , const boost::filesystem::path &path
-                       , gltf::MeshLoader::DecodeOptions options) const
+                       , const gltf::MeshLoader::DecodeOptions &options) const
 {
-    auto model(b3dm(*istream(path), path));
-
-    // add rtc and Y-up to Z-up switch
-    options.trafo = prod(options.trafo, math::translate(model.rtcCenter));
-    options.trafo = prod(options.trafo, gltf::yup2zup());
-
-    decodeMesh(loader, model.model, options);
+    threedtiles::loadMesh(loader, b3dm(*istream(path), path), options);
 }
 
 bool Archive::remote() const

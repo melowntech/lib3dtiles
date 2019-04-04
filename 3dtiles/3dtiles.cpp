@@ -514,6 +514,8 @@ void parse(math::Matrix4 &matrix, const Json::Value &value)
             << value.size() << ").";
     }
 
+    matrix = boost::numeric::ublas::zero_matrix<double>(4, 4);
+
     // read matrix as a column major order
     for (int i(0), column(0); column < 4; ++column) {
         for (int row(0); row < 4; ++row, ++i) {

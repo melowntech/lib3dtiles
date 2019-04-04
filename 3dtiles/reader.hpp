@@ -52,7 +52,7 @@ public:
      */
     void loadMesh(gltf::MeshLoader &loader
                   , const boost::filesystem::path &path
-                  , gltf::MeshLoader::DecodeOptions options
+                  , const gltf::MeshLoader::DecodeOptions &options
                   = gltf::MeshLoader::DecodeOptions()) const;
 
     /** Root tileset.
