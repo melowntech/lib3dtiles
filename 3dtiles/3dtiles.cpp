@@ -30,6 +30,8 @@
 
 #include "dbglog/dbglog.hpp"
 
+#include "utility/format.hpp"
+
 #include "math/transform.hpp"
 
 #include "utility/cppversion.hpp"
@@ -41,6 +43,7 @@
 #include "jsoncpp/io.hpp"
 
 #include "3dtiles.hpp"
+#include "io.hpp"
 
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
@@ -329,7 +332,7 @@ void write(std::ostream &os, const Tileset &tileset)
     Json::write(os, value, false);
 }
 
-void write(const boost::filesystem::path &path, const Tileset &tileset)
+void write(const fs::path &path, const Tileset &tileset)
 {
     LOG(info1) << "Saving Tileset to " << path  << ".";
     std::ofstream f;
@@ -693,6 +696,76 @@ Tileset clone(const Tileset &ts)
     nts.extensionsUsed = ts.extensionsUsed;
     nts.extensionsRequired = ts.extensionsRequired;
     return nts;
+}
+
+TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
+{
+    class Splitter {
+    public:
+        Splitter(Tileset &tileset, std::size_t tileLimit)
+            : tileset_(tileset), tileLimit_(tileLimit)
+        {
+            process(tileset_.root);
+        }
+
+        TilesetWithUri::list subtrees() { return std::move(subtrees_); }
+
+    private:
+        std::size_t process(const Tile::pointer &tile) {
+            int i(0);
+
+            std::size_t size(1);
+            for (auto &child : tile->children) {
+                path_.path.push_back(i++);
+
+                auto stSize(process(child));
+                if (stSize >= tileLimit_) {
+                    LOG(info4)
+                        << "Will split at <" << path_
+                        << ">, subtree size: " << stSize;
+
+                    cut(child, path_);
+                    // count in replaced child
+                    stSize = 1;
+                }
+
+                size += stSize;
+                path_.path.pop_back();
+            }
+            return size;
+        }
+
+        void cut(Tile::pointer &root, const TilePath &path) {
+            const auto uri(utility::format("tileset-%s.json", path));
+
+            subtrees_.emplace_back(uri);
+            auto &ts(subtrees_.back().tileset);
+
+            // copy data from original tileset, set root
+            ts.asset = tileset_.asset;
+            ts.properties = tileset_.properties;
+            ts.geometricError = root->geometricError;
+            ts.root = std::move(root);
+            ts.extensionsUsed = tileset_.extensionsUsed;
+            ts.extensionsRequired = tileset_.extensionsRequired;
+
+            // regenerate root
+            root = std::make_unique<Tile>();
+            root->geometricError = ts.geometricError;
+            root->boundingVolume = ts.root->boundingVolume;
+            root->content = boost::in_place();
+            root->content->uri = uri;
+        }
+
+        Tileset &tileset_;
+        std::size_t tileLimit_;
+
+        TilePath path_;
+
+        TilesetWithUri::list subtrees_;
+    };
+
+    return Splitter(tileset, tileLimit).subtrees();
 }
 
 } // namespace threedtiles

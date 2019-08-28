@@ -148,6 +148,28 @@ void write(std::ostream &os, const Tileset &tileset);
  */
 void write(const boost::filesystem::path &path, const Tileset &tileset);
 
+struct TilesetWithUri {
+    typedef std::vector<TilesetWithUri> list;
+
+    std::string uri;
+    Tileset tileset;
+
+    TilesetWithUri(const std::string &uri) : uri(uri) {}
+};
+
+/** Splits tileset tree into multiple sub-trees.
+ *
+ * Tile limit is only indicative, subtree is always full pyramid unless there
+ * are leaf nodes.
+ *
+ * NB: original tileset tree is modified!
+ *
+ * \param tileset tileset to split
+ * \param tileLimit (soft) tile limit
+ * \returns list of sub trees
+ */
+TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit);
+
 /** Updates one volume from the other.
  *  If updated is valid then it has to be of the same type as the updater.
  */
