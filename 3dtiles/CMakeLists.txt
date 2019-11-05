@@ -11,6 +11,18 @@ else()
   message(STATUS "3dtiles: compiling without roarchive support")
 endif()
 
+# encoding support (needs VTS libraries)
+if(MODULE_vts-libs-core_FOUND)
+  message(STATUS "3dtiles: compiling in encodig support (VTS)")
+  list(APPEND 3dtiles_EXTRA_DEPENDS vts-libs-core)
+  list(APPEND 3dtiles_EXTRA_SOURCES
+    mesh.hpp mesh.cpp
+    encoder.hpp encoder.cpp
+    )
+else()
+  message(STATUS "3dtiles: compiling without encoding support (no VTS)")
+endif()
+
 define_module(LIBRARY 3dtiles=${3dtiles_VERSION}
   DEPENDS
   ${3dtiles_EXTRA_DEPENDS}
