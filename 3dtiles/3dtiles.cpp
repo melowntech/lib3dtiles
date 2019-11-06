@@ -720,7 +720,7 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
 
                 auto stSize(process(child));
                 if (stSize >= tileLimit_) {
-                    LOG(info4)
+                    LOG(info2)
                         << "Will split at <" << path_
                         << ">, subtree size: " << stSize;
 

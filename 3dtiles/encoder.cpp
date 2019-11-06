@@ -71,8 +71,9 @@ void Encoder::Config::configure(const po::variables_map &vars)
     (void) vars;
 }
 
-double Encoder::texelSize(const vts::Mesh &mesh
-                            , const vts::Atlas &atlas) const
+namespace {
+
+double texelSize(const vts::Mesh &mesh, const vts::Atlas &atlas)
 {
     const auto ma(area(mesh));
     double meshArea(ma.mesh);
@@ -87,8 +88,6 @@ double Encoder::texelSize(const vts::Mesh &mesh
 
     return std::sqrt(meshArea / textureArea);
 }
-
-namespace {
 
 void updateBoundingVolumes(const Tile::pointer &tile
                            , const Tile::pointer &parent)
@@ -151,7 +150,57 @@ operator<<(std::basic_ostream<CharT, Traits> &os, const Done &d)
 
 } // namespace
 
-void Encoder::process(const vts::TileId &tileId, Tile *parent)
+class Encoder::Detail {
+public:
+    Detail(Encoder &owner)
+        : owner_(owner), config_(owner_.config_)
+        , tileset_(owner_.tileset_), output_(owner_.output_)
+        , ti_(owner_.validTiles_), fullTree_(ti_)
+        , generated_(), total_(ti_.count())
+        , srs2rad_(config_.srs, Wgs84Rad)
+    {
+        fullTree_.makeAbsolute().complete();
+    }
+
+    void generate() {
+        if (config_.parallel) {
+            UTILITY_OMP(parallel)
+            UTILITY_OMP(single)
+            {
+                process({}, {});
+            }
+        } else {
+            process({}, {});
+        }
+    }
+
+private:
+    void process(const vts::TileId &tileId, Tile *parent);
+
+    Region tileVolume(const vts::Mesh &mesh) {
+        Region region;
+        for (const auto &sm : mesh) {
+            for (const auto &v : sm.vertices) {
+                math::update(region.extents, srs2rad_(v));
+            }
+        }
+        return region;
+    }
+
+    Encoder &owner_;
+    const Config &config_;
+    Tileset &tileset_;
+    const fs::path output_;
+
+    const vts::TileIndex &ti_;
+    vts::TileIndex fullTree_;
+    std::atomic<std::size_t> generated_;
+    std::size_t total_;
+
+    geo::CsConvertor srs2rad_;
+};
+
+void Encoder::Detail::process(const vts::TileId &tileId, Tile *parent)
 {
     struct TIDGuard {
         TIDGuard(const std::string &id)
@@ -178,7 +227,7 @@ void Encoder::process(const vts::TileId &tileId, Tile *parent)
         LOG(info2)
             << "Generating 3D tile from tile " << tileId << ".";
 
-        auto texturedMesh(generate(tileId));
+        auto texturedMesh(owner_.generate(tileId));
 
         auto &t(*tile);
 
@@ -187,13 +236,9 @@ void Encoder::process(const vts::TileId &tileId, Tile *parent)
 
         t.content = boost::in_place();
 
-        /** TODO: SRS conversion
         t.boundingVolume = t.content->boundingVolume
-            = tileVolume(setup_, *content.mesh);
+            = tileVolume(*texturedMesh.mesh);
 
-        // convert mesh vertices to output SRS
-        warpInPlace(*mesh, setup_.work2dst);
-        */
         t.content->uri = saveTile
             (output_, tileId, *texturedMesh.mesh, *texturedMesh.atlas)
             .string();
@@ -226,15 +271,7 @@ void Encoder::process(const vts::TileId &tileId, Tile *parent)
 
 void Encoder::run()
 {
-    if (config_.parallel) {
-        UTILITY_OMP(parallel)
-        UTILITY_OMP(single)
-        {
-            process({}, {});
-        }
-    } else {
-        process({}, {});
-    }
+    Detail(*this).generate();
 
     updateBoundingVolumes(tileset_.root, {});
     tileset_.geometricError

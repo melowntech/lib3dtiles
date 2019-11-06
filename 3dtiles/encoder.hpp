@@ -45,12 +45,14 @@ namespace threedtiles {
 class Encoder {
 public:
     struct Config {
+        geo::SrsDefinition srs;
         double geometricErrorFactor;
         std::size_t tilesetLimit;
         bool parallel;
 
         Config()
-            : geometricErrorFactor(16.0)
+            : srs(4328)
+            , geometricErrorFactor(16.0)
             , tilesetLimit(1000)
             , parallel(true)
         {}
@@ -63,12 +65,8 @@ public:
 
     Encoder(const Config &config, const boost::filesystem::path &output
             , const vts::TileIndex &validTiles)
-        : config_(config), output_(output)
-        , ti_(validTiles)
-        , fullTree_(ti_), generated_(), total_(ti_.count())
-    {
-        fullTree_.makeAbsolute().complete();
-    }
+        : config_(config), output_(output), validTiles_(validTiles)
+    {}
 
     virtual ~Encoder() {}
 
@@ -87,23 +85,21 @@ public:
         }
     };
 
+    class Detail;
+    friend class Detail;
+
+protected:
+    const Config& config() const { return config_; }
+
 private:
     virtual TexturedMesh generate(const vts::TileId &tileId) = 0;
-
-    void process(const vts::TileId &tileId, Tile *parent);
-
-    double texelSize(const vts::Mesh &mesh, const vts::Atlas &atlas) const;
 
     const Config &config_;
     const boost::filesystem::path output_;
 
-    vts::TileIndex ti_;
-    vts::TileIndex fullTree_;
+    vts::TileIndex validTiles_;
 
     Tileset tileset_;
-
-    std::atomic<std::size_t> generated_;
-    std::size_t total_;
 };
 
 } // namespace threedtiles

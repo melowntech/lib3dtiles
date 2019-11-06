@@ -181,7 +181,7 @@ struct MeshLoader : gltf::MeshLoader
         }
 
         LOG(info3) << "Saving mesh to " << output << ".";
-        saveAsObj(m, output / "mesh.obj", "mesh.mtl");
+        saveAsObj(m, output / "mesh.obj", geometry::ObjMaterial("mesh.mtl"));
     }
 
     const fs::path output;
