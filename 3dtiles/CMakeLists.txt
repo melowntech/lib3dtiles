@@ -12,9 +12,9 @@ else()
 endif()
 
 # encoding support (needs VTS libraries)
-if(MODULE_vts-libs-core_FOUND)
+if(MODULE_vts-libs_FOUND)
   message(STATUS "3dtiles: compiling in encodig support (VTS)")
-  list(APPEND 3dtiles_EXTRA_DEPENDS vts-libs-core)
+  list(APPEND 3dtiles_EXTRA_DEPENDS vts-libs)
   list(APPEND 3dtiles_EXTRA_SOURCES
     mesh.hpp mesh.cpp
     encoder.hpp encoder.cpp

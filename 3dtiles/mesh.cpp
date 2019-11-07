@@ -32,10 +32,13 @@
 #include "utility/format.hpp"
 #include "utility/binaryio.hpp"
 
+#include "vts-libs/vts/meshop.hpp"
+
 #include "gltf/gltf.hpp"
 #include "3dtiles/b3dm.hpp"
 
 #include "./mesh.hpp"
+
 
 namespace fs = boost::filesystem;
 namespace vts = vtslibs::vts;
@@ -304,7 +307,10 @@ fs::path saveTile(const fs::path &root, const vts::TileId &tileId
 
     int idx(0);
     gltf::Indices nodes;
-    for (const auto &sm : mesh.submeshes) {
+    for (const auto &inSm : mesh.submeshes) {
+        // ensure mesh uses the same vertex indices in 3D and 2D faces
+        const auto sm(vts::makeSharedFaces(inSm));
+
         LOG(info2) << "Saving submesh " << idx << " of tile " << tileId
                    << ", vertices: " << sm.vertices.size()
                    << ", faces: " << sm.faces.size()
