@@ -37,7 +37,7 @@
 #include "gltf/gltf.hpp"
 #include "3dtiles/b3dm.hpp"
 
-#include "./mesh.hpp"
+#include "mesh.hpp"
 
 
 namespace fs = boost::filesystem;
