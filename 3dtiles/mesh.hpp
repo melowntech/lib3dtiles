@@ -27,18 +27,71 @@
 #ifndef threedtiles_mesh_hpp_included_
 #define threedtiles_mesh_hpp_included_
 
+#include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include "vts-libs/vts/basetypes.hpp"
+#include "vts-libs/vts/basetypes3.hpp"
 #include "vts-libs/vts/mesh.hpp"
 #include "vts-libs/vts/atlas.hpp"
 
 namespace threedtiles {
 
+boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId &tileId
+         , const vtslibs::vts::Mesh &mesh
+         , const vtslibs::vts::Atlas &atlas
+         , const boost::optional<vtslibs::vts::TileId::index_type>
+         &z = boost::none);
+
+boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId &tileId
+         , const vtslibs::vts::ConstSubMeshRange &submeshes
+         , const vtslibs::vts::Atlas &atlas
+         , const boost::optional<vtslibs::vts::TileId::index_type>
+         &z = boost::none);
+
 boost::filesystem::path saveTile(const boost::filesystem::path &root
-                                 , const vtslibs::vts::TileId &tileId
+                                 , const vtslibs::vts::TileId3 &tileId
                                  , const vtslibs::vts::Mesh &mesh
                                  , const vtslibs::vts::Atlas &atlas);
+
+boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId3 &tileId
+         , const vtslibs::vts::ConstSubMeshRange &submeshes
+         , const vtslibs::vts::Atlas &atlas);
+
+// inlines
+
+inline boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId &tileId
+         , const vtslibs::vts::Mesh &mesh
+         , const vtslibs::vts::Atlas &atlas
+         , const boost::optional<vtslibs::vts::TileId::index_type> &z)
+{
+    return saveTile(root, tileId, vtslibs::vts::submeshRange(mesh), atlas, z);
+}
+
+inline boost::filesystem::path saveTile(const boost::filesystem::path &root
+                                        , const vtslibs::vts::TileId3 &tileId
+                                        , const vtslibs::vts::Mesh &mesh
+                                        , const vtslibs::vts::Atlas &atlas)
+{
+    return saveTile(root, tileId, vtslibs::vts::submeshRange(mesh)
+                    , atlas, tileId.z);
+}
+
+inline boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId3 &tileId
+         , const vtslibs::vts::ConstSubMeshRange &submeshes
+         , const vtslibs::vts::Atlas &atlas)
+{
+    return saveTile(root, tileId, submeshes, atlas, tileId.z);
+}
 
 } // namespace threedtiles
 

@@ -284,30 +284,49 @@ gltf::Index serializeTexture(gltf::GLTF &ga, const std::string &name
 }
 
 fs::path saveTile(const fs::path &root, const vts::TileId &tileId
-                  , const vts::Mesh &mesh, const vts::Atlas &atlas)
+                  , const vtslibs::vts::ConstSubMeshRange &submeshes
+                  , const vts::Atlas &atlas
+                  , const boost::optional<vts::TileId::index_type> &z)
 {
-    LOG(info2) << "Saving tile " << tileId
-               << ", submeshes: " << mesh.submeshes.size();
-
-    const fs::path fname(utility::format
-                         ("%s-%s-%s.b3dm"
-                          , tileId.lod, tileId.x, tileId.y));
+    const fs::path fname
+        (z
+         ? utility::format("%s-%s-%s-%s.b3dm"
+                           , tileId.lod, tileId.x, tileId.y, *z)
+         : utility::format("%s-%s-%s.b3dm", tileId.lod, tileId.x, tileId.y));
 
     const fs::path path(dir(fname) / fname);
-
     const auto fullPath(root / path);
+
+    if (submeshes.size() != submeshes.total()) {
+        LOG(info2) << "Saving tile " << tileId
+                   << ", submeshes: [" << submeshes.b << ", "
+                   << submeshes.e << ") of " << submeshes.total()
+                   << " to " << fullPath << ".";
+
+        if (submeshes.empty()) {
+            LOGTHROW(err2, std::runtime_error)
+                << "Empty or invalid submesh range. Nothing to save.";
+        }
+
+    } else {
+        LOG(info2) << "Saving tile " << tileId
+                   << ", submeshes: " << submeshes.total()
+                   << " to " << fullPath << ".";
+    }
+
     fs::create_directories(fullPath.parent_path());
 
     gltf::GLTF ga;
     const auto simpleSamplerId(gltf::add(ga.samplers));
     ga.extensionsUsed.push_back("KHR_materials_unlit");
 
-    const auto me(vts::extents(mesh));
+    const auto me(vts::extents(submeshes));
     const auto mc(math::center(me));
 
-    int idx(0);
     gltf::Indices nodes;
-    for (const auto &inSm : mesh.submeshes) {
+
+    auto idx(submeshes.b);
+    for (const auto &inSm : submeshes) {
         // ensure mesh uses the same vertex indices in 3D and 2D faces
         const auto sm(vts::makeSharedFaces(inSm));
 
