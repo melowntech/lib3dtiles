@@ -283,18 +283,27 @@ gltf::Index serializeTexture(gltf::GLTF &ga, const std::string &name
     return materialId;
 }
 
+boost::filesystem::path
+tilePath(const vtslibs::vts::TileId &tileId
+         , const std::string &extension
+         , const boost::optional<vtslibs::vts::TileId::index_type> &z)
+{
+    const fs::path fname
+        (z
+         ? utility::format("%s-%s-%s-%s%s"
+                           , tileId.lod, tileId.x, tileId.y, *z, extension)
+         : utility::format("%s-%s-%s%s"
+                           , tileId.lod, tileId.x, tileId.y, extension));
+
+    return dir(fname) / fname;
+}
+
 fs::path saveTile(const fs::path &root, const vts::TileId &tileId
                   , const vtslibs::vts::ConstSubMeshRange &submeshes
                   , const vts::Atlas &atlas
                   , const boost::optional<vts::TileId::index_type> &z)
 {
-    const fs::path fname
-        (z
-         ? utility::format("%s-%s-%s-%s.b3dm"
-                           , tileId.lod, tileId.x, tileId.y, *z)
-         : utility::format("%s-%s-%s.b3dm", tileId.lod, tileId.x, tileId.y));
-
-    const fs::path path(dir(fname) / fname);
+    const auto path(tilePath(tileId, ".b3dm", z));
     const auto fullPath(root / path);
 
     if (submeshes.size() != submeshes.total()) {

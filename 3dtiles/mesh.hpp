@@ -63,6 +63,16 @@ saveTile(const boost::filesystem::path &root
          , const vtslibs::vts::ConstSubMeshRange &submeshes
          , const vtslibs::vts::Atlas &atlas);
 
+
+boost::filesystem::path
+tilePath(const vtslibs::vts::TileId &tileId
+         , const std::string &extension
+         , const boost::optional<vtslibs::vts::TileId::index_type>
+         &z = boost::none);
+
+boost::filesystem::path tilePath(const vtslibs::vts::TileId3 &tileId
+                                 , const std::string &extension);
+
 // inlines
 
 inline boost::filesystem::path
@@ -80,7 +90,7 @@ inline boost::filesystem::path saveTile(const boost::filesystem::path &root
                                         , const vtslibs::vts::Mesh &mesh
                                         , const vtslibs::vts::Atlas &atlas)
 {
-    return saveTile(root, tileId, vtslibs::vts::submeshRange(mesh)
+    return saveTile(root, tileId.tileId(), vtslibs::vts::submeshRange(mesh)
                     , atlas, tileId.z);
 }
 
@@ -90,7 +100,13 @@ saveTile(const boost::filesystem::path &root
          , const vtslibs::vts::ConstSubMeshRange &submeshes
          , const vtslibs::vts::Atlas &atlas)
 {
-    return saveTile(root, tileId, submeshes, atlas, tileId.z);
+    return saveTile(root, tileId.tileId(), submeshes, atlas, tileId.z);
+}
+
+inline boost::filesystem::path tilePath(const vtslibs::vts::TileId3 &tileId
+                                        , const std::string &extension)
+{
+    return tilePath(tileId.tileId(), extension, tileId.z);
 }
 
 } // namespace threedtiles
