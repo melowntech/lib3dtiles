@@ -27,6 +27,7 @@
 #ifndef threedtiles_3dtiles_hpp_included_
 #define threedtiles_3dtiles_hpp_included_
 
+#include <algorithm>
 #include <iosfwd>
 
 #include <vector>
@@ -121,6 +122,10 @@ struct Tile : CommonBase {
     /** Return number of tiles in subtree rooted in this tile.
      */
     std::size_t subtreeSize() const;
+
+    /** Return depth of subtree. No children -> 0.
+     */
+    std::size_t subtreeDepth() const;
 };
 
 struct Asset : CommonBase {
@@ -194,7 +199,7 @@ Tileset& absolutize(Tileset &ts, const std::string &baseUri);
 struct TilePath {
     std::vector<int> path;
     TilePath() { path.reserve(32); /* guesstimage */ }
-    int depth() const { return path.size(); }
+    std::size_t depth() const { return path.size(); }
 };
 
 /** Recursively traverses the tile tree starting at root and calls
@@ -270,6 +275,14 @@ inline std::size_t Tile::subtreeSize() const {
     std::size_t count(0);
     traverse(*this, [&count](const Tile&, const TilePath&) { ++count; });
     return count;
+}
+
+inline std::size_t Tile::subtreeDepth() const {
+    std::size_t depth(0);
+    traverse(*this, [&depth](const Tile&, const TilePath &path) {
+                        depth = std::max(depth, path.depth());
+                    });
+    return depth;
 }
 
 } // namespace threedtiles
