@@ -199,7 +199,7 @@ Tileset& absolutize(Tileset &ts, const std::string &baseUri);
 struct TilePath {
     std::vector<int> path;
     TilePath() { path.reserve(32); /* guesstimage */ }
-    std::size_t depth() const { return path.size(); }
+    int depth() const { return path.size(); }
 };
 
 /** Recursively traverses the tile tree starting at root and calls
@@ -280,7 +280,7 @@ inline std::size_t Tile::subtreeSize() const {
 inline std::size_t Tile::subtreeDepth() const {
     std::size_t depth(0);
     traverse(*this, [&depth](const Tile&, const TilePath &path) {
-                        depth = std::max(depth, path.depth());
+                        depth = std::max(depth, std::size_t(path.depth()));
                     });
     return depth;
 }
