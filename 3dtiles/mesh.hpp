@@ -34,8 +34,38 @@
 #include "vts-libs/vts/mesh.hpp"
 #include "vts-libs/vts/atlas.hpp"
 
+#include "gltf/gltf.hpp"
+
 namespace threedtiles {
 
+/** Image source.
+ */
+class ImageSource {
+public:
+    virtual ~ImageSource() {}
+    virtual gltf::Image image(int idx) const = 0;
+    virtual std::string info(int idx) const = 0;
+};
+
+/** Image source-based savers.
+ */
+void saveTile(std::ostream &os, const boost::filesystem::path &path
+              , const vtslibs::vts::TileId &tileId
+              , const vtslibs::vts::ConstSubMeshRange &submeshes
+              , const ImageSource &images);
+
+/** Image source-based savers.
+ */
+boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId &tileId
+         , const vtslibs::vts::ConstSubMeshRange &submeshes
+         , const ImageSource &images
+         , const boost::optional<vtslibs::vts::TileId::index_type>
+         &z = boost::none);
+
+/** Atlas based savers.
+ */
 boost::filesystem::path
 saveTile(const boost::filesystem::path &root
          , const vtslibs::vts::TileId &tileId
@@ -75,6 +105,25 @@ boost::filesystem::path tilePath(const vtslibs::vts::TileId3 &tileId
 
 // inlines
 
+/** Atlas image source.
+ */
+namespace detail {
+
+class AtlasSource : public ImageSource {
+public:
+    AtlasSource(const vtslibs::vts::Atlas &atlas)
+        : atlas_(atlas)
+    {}
+
+    gltf::Image image(int idx) const override;
+    std::string info(int idx) const override;
+
+private:
+    const vtslibs::vts::Atlas &atlas_;
+};
+
+} // namespace detail
+
 inline boost::filesystem::path
 saveTile(const boost::filesystem::path &root
          , const vtslibs::vts::TileId &tileId
@@ -82,7 +131,18 @@ saveTile(const boost::filesystem::path &root
          , const vtslibs::vts::Atlas &atlas
          , const boost::optional<vtslibs::vts::TileId::index_type> &z)
 {
-    return saveTile(root, tileId, vtslibs::vts::submeshRange(mesh), atlas, z);
+    return saveTile(root, tileId, vtslibs::vts::submeshRange(mesh)
+                    , detail::AtlasSource(atlas), z);
+}
+
+inline boost::filesystem::path
+saveTile(const boost::filesystem::path &root
+         , const vtslibs::vts::TileId &tileId
+         , const vtslibs::vts::ConstSubMeshRange &submeshes
+         , const vtslibs::vts::Atlas &atlas
+         , const boost::optional<vtslibs::vts::TileId::index_type> &z)
+{
+    return saveTile(root, tileId, submeshes, detail::AtlasSource(atlas), z);
 }
 
 inline boost::filesystem::path saveTile(const boost::filesystem::path &root
@@ -91,7 +151,7 @@ inline boost::filesystem::path saveTile(const boost::filesystem::path &root
                                         , const vtslibs::vts::Atlas &atlas)
 {
     return saveTile(root, tileId.tileId(), vtslibs::vts::submeshRange(mesh)
-                    , atlas, tileId.z);
+                    , detail::AtlasSource(atlas), tileId.z);
 }
 
 inline boost::filesystem::path
@@ -100,7 +160,8 @@ saveTile(const boost::filesystem::path &root
          , const vtslibs::vts::ConstSubMeshRange &submeshes
          , const vtslibs::vts::Atlas &atlas)
 {
-    return saveTile(root, tileId.tileId(), submeshes, atlas, tileId.z);
+    return saveTile(root, tileId.tileId(), submeshes
+                    , detail::AtlasSource(atlas), tileId.z);
 }
 
 inline boost::filesystem::path tilePath(const vtslibs::vts::TileId3 &tileId

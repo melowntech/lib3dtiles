@@ -242,21 +242,11 @@ gltf::Index serializeMesh(gltf::GLTF &ga, const std::string &name
 }
 
 gltf::Index serializeTexture(gltf::GLTF &ga, const std::string &name
-                             , const vts::Atlas &atlas, int idx
+                             , const ImageSource &images, int idx
                              , gltf::Index simpleSamplerId)
 {
-    // serialize image into memory
-    gltf::InlineImage image;
-    {
-        std::ostringstream os;
-        atlas.write(os, idx);
-        const auto str(os.str());
-        image.data.assign(str.data(), str.data() + str.size());
-    }
-    // TODO: get mime-type from atlas
-    image.mimeType = "image/jpeg";
     const gltf::Index imageId(ga.images.size());
-    ga.images.push_back(std::move(image));
+    ga.images.push_back(std::move(images.image(idx)));
 
     const gltf::Index textureId(ga.textures.size());
     const gltf::Index materialId(ga.materials.size());
@@ -298,19 +288,20 @@ tilePath(const vtslibs::vts::TileId &tileId
     return dir(fname) / fname;
 }
 
-fs::path saveTile(const fs::path &root, const vts::TileId &tileId
-                  , const vtslibs::vts::ConstSubMeshRange &submeshes
-                  , const vts::Atlas &atlas
-                  , const boost::optional<vts::TileId::index_type> &z)
-{
-    const auto path(tilePath(tileId, ".b3dm", z));
-    const auto fullPath(root / path);
+namespace detail {
 
+template <typename Sink>
+void saveTile(Sink &&sink
+              , const boost::filesystem::path &path
+              , const vtslibs::vts::TileId &tileId
+              , const vtslibs::vts::ConstSubMeshRange &submeshes
+              , const ImageSource &images)
+{
     if (submeshes.size() != submeshes.total()) {
         LOG(info2) << "Saving tile " << tileId
                    << ", submeshes: [" << submeshes.b << ", "
                    << submeshes.e << ") of " << submeshes.total()
-                   << " to " << fullPath << ".";
+                   << " to " << path << ".";
 
         if (submeshes.empty()) {
             LOGTHROW(err2, std::runtime_error)
@@ -320,10 +311,8 @@ fs::path saveTile(const fs::path &root, const vts::TileId &tileId
     } else {
         LOG(info2) << "Saving tile " << tileId
                    << ", submeshes: " << submeshes.total()
-                   << " to " << fullPath << ".";
+                   << " to " << path << ".";
     }
-
-    fs::create_directories(fullPath.parent_path());
 
     gltf::GLTF ga;
     const auto simpleSamplerId(gltf::add(ga.samplers));
@@ -342,11 +331,11 @@ fs::path saveTile(const fs::path &root, const vts::TileId &tileId
         LOG(info2) << "Saving submesh " << idx << " of tile " << tileId
                    << ", vertices: " << sm.vertices.size()
                    << ", faces: " << sm.faces.size()
-                   << ", texture: " << atlas.imageSize(idx);
+                   << ", texture: " << images.info(idx);
 
         const auto name(utility::format("%s.%s", tileId, idx));
         const auto materialId
-            (serializeTexture(ga, name, atlas, idx, simpleSamplerId));
+            (serializeTexture(ga, name, images, idx, simpleSamplerId));
         const auto nodeId(serializeMesh(ga, name, sm, mc, materialId));
         nodes.push_back(nodeId);
 
@@ -362,9 +351,58 @@ fs::path saveTile(const fs::path &root, const vts::TileId &tileId
         rootNode.children = nodes;
     }
 
-    b3dm(fullPath, ga, {}, mc);
+    b3dm(sink, ga, {}, mc);
+}
+
+} // namespace detail
+
+void saveTile(std::ostream &os, const boost::filesystem::path &path
+              , const vtslibs::vts::TileId &tileId
+              , const vtslibs::vts::ConstSubMeshRange &submeshes
+              , const ImageSource &images)
+{
+    detail::saveTile(os, path, tileId, submeshes, images);
+}
+
+fs::path saveTile(const fs::path &root, const vts::TileId &tileId
+                  , const vtslibs::vts::ConstSubMeshRange &submeshes
+                  , const ImageSource &images
+                  , const boost::optional<vts::TileId::index_type> &z)
+{
+    const auto path(tilePath(tileId, ".b3dm", z));
+    const auto fullPath(root / path);
+
+    fs::create_directories(fullPath.parent_path());
+
+    detail::saveTile(fullPath, fullPath, tileId, submeshes, images);
 
     return path;
 }
+
+namespace detail {
+
+gltf::Image AtlasSource::image(int idx) const
+{
+    gltf::InlineImage image;
+    {
+        std::ostringstream os;
+        atlas_.write(os, idx);
+        const auto str(os.str());
+        image.data.assign(str.data(), str.data() + str.size());
+    }
+
+    // TODO: get mime-type from atlas
+    image.mimeType = "image/jpeg";
+    return image;
+}
+
+std::string AtlasSource::info(int idx) const
+{
+    std::ostringstream os;
+    os << atlas_.imageSize(idx);
+    return os.str();
+}
+
+} // namespace detail
 
 } // namespace threedtiles
