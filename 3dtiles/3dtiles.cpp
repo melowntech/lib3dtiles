@@ -755,6 +755,10 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
             root->boundingVolume = ts.root->boundingVolume;
             root->content = boost::in_place();
             root->content->uri = uri;
+
+            // copy extensions and extras
+            root->extensions = ts.root->extensions;
+            root->extras = ts.root->extras;
         }
 
         Tileset &tileset_;
