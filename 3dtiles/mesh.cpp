@@ -298,7 +298,7 @@ void saveTile(Sink &&sink
               , const ImageSource &images)
 {
     if (submeshes.size() != submeshes.total()) {
-        LOG(info2) << "Saving tile " << tileId
+        LOG(info1) << "Saving tile " << tileId
                    << ", submeshes: [" << submeshes.b << ", "
                    << submeshes.e << ") of " << submeshes.total()
                    << " to " << path << ".";
@@ -309,7 +309,7 @@ void saveTile(Sink &&sink
         }
 
     } else {
-        LOG(info2) << "Saving tile " << tileId
+        LOG(info1) << "Saving tile " << tileId
                    << ", submeshes: " << submeshes.total()
                    << " to " << path << ".";
     }
@@ -328,7 +328,7 @@ void saveTile(Sink &&sink
         // ensure mesh uses the same vertex indices in 3D and 2D faces
         const auto sm(vts::makeSharedFaces(inSm));
 
-        LOG(info2) << "Saving submesh " << idx << " of tile " << tileId
+        LOG(info1) << "Saving submesh " << idx << " of tile " << tileId
                    << ", vertices: " << sm.vertices.size()
                    << ", faces: " << sm.faces.size()
                    << ", texture: " << images.info(idx);
