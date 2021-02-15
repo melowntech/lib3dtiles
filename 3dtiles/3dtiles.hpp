@@ -190,9 +190,11 @@ void read(std::istream &is, Tileset &tileset
  *
  *  \param tileset tileset to update
  *  \param baseUri base URI
+ *  \param relaxed relaxed validity check
  *  \return tileset itself, to allow call chaining
  */
-Tileset& absolutize(Tileset &ts, const std::string &baseUri);
+Tileset& absolutize(Tileset &ts, const std::string &baseUri
+                    , bool relaxed = false);
 
 /** Path in tile tree.
  */

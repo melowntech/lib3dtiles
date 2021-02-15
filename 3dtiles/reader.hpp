@@ -78,7 +78,8 @@ public:
     /** Read additional tileset file.
      */
     Tileset tileset(const boost::filesystem::path &path
-                    , bool includeExternal = false) const;
+                    , bool includeExternal = false
+                    , bool relaxed = false) const;
 
 private:
     const roarchive::RoArchive archive_;

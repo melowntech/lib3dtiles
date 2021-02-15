@@ -616,12 +616,12 @@ void read(std::istream &is, Tileset &tileset, const fs::path &path)
 
 }
 
-Tileset& absolutize(Tileset &ts, const std::string &baseUri)
+Tileset& absolutize(Tileset &ts, const std::string &baseUri, bool relaxed)
 {
     auto &root(*ts.root);
 
     // sanity check
-    if (!root.refine) {
+    if (!relaxed && !root.refine) {
         LOGTHROW(err2, std::runtime_error)
             << "Root tile in tileset <" << baseUri
             << "> has no refinement defined.";

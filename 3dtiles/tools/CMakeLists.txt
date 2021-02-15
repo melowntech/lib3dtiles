@@ -27,3 +27,13 @@ add_executable(b3dm2obj ${b3dm2obj_SOURCES})
 target_link_libraries(b3dm2obj ${MODULE_LIBRARIES})
 buildsys_target_compile_definitions(b3dm2obj PRIVATE ${MODULE_DEFINITIONS})
 buildsys_binary(b3dm2obj)
+
+define_module(BINARY 3dtiles-metadata
+  DEPENDS 3dtiles service
+  )
+
+set(3dtiles-metadata_SOURCES 3dtiles-metadata.cpp)
+add_executable(3dtiles-metadata ${3dtiles-metadata_SOURCES})
+target_link_libraries(3dtiles-metadata ${MODULE_LIBRARIES})
+buildsys_target_compile_definitions(3dtiles-metadata PRIVATE ${MODULE_DEFINITIONS})
+buildsys_binary(3dtiles-metadata)

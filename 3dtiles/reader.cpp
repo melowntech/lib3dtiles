@@ -95,7 +95,7 @@ void include(const Archive &archive, Tile::pointer &root)
     if (ba::iends_with(root->content->uri, ".json")) {
         UTILITY_OMP(task shared(archive, root))
         {
-            root = archive.tileset(root->content->uri).root;
+            root = archive.tileset(root->content->uri, false, true).root;
             include(archive, root);
         }
     }
@@ -103,12 +103,13 @@ void include(const Archive &archive, Tile::pointer &root)
 
 } // namespace
 
-Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
+Tileset Archive::tileset(const fs::path &path, bool includeExternal
+                         , bool relaxed) const
 {
     Tileset ts;
     if (!includeExternal) {
         read(*istream(path), ts, path);
-        absolutize(ts, path.string());
+        absolutize(ts, path.string(), relaxed);
         return ts;
     }
 
@@ -117,7 +118,7 @@ Tileset Archive::tileset(const fs::path &path, bool includeExternal) const
         UTILITY_OMP(single)
         {
             read(*istream(path), ts, path);
-            absolutize(ts, path.string());
+            absolutize(ts, path.string(), relaxed);
             include(*this, ts.root);
         }
     }
