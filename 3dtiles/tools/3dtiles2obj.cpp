@@ -119,14 +119,14 @@ struct MeshLoader : gltf::MeshLoader
 
     /** New mesh has been encountered.
      */
-    virtual void mesh() {
+    void mesh() override {
         smStart = m.vertices.size();
         ++smIndex;
     }
 
     /** Mesh vertices.
      */
-    virtual void vertices(math::Points3d &&v) {
+    void vertices(math::Points3d &&v) override {
         m.vertices.insert(m.vertices.end()
                           , std::make_move_iterator(v.begin())
                           , std::make_move_iterator(v.end()));
@@ -134,7 +134,7 @@ struct MeshLoader : gltf::MeshLoader
 
     /** Mesh texture coordinates.
      */
-    virtual void tc(math::Points2d &&tc) {
+    void tc(math::Points2d &&tc) override {
         m.tCoords.insert(m.tCoords.end()
                          , std::make_move_iterator(tc.begin())
                          , std::make_move_iterator(tc.end()));
@@ -143,7 +143,7 @@ struct MeshLoader : gltf::MeshLoader
     /** Mexh faces. Indices are valid for both 3D and 2D vertices (i.e. vertices
      *  and texture coordinates.
      */
-    virtual void faces(Faces &&faces) {
+    void faces(Faces &&faces) override {
         for (const auto &face : faces) {
             m.faces.emplace_back
                 (face(0) + smStart, face(1) + smStart, face(2) + smStart
@@ -154,13 +154,19 @@ struct MeshLoader : gltf::MeshLoader
 
     /** Image data.
      */
-    virtual void image(const DataView &imageData) {
+    void image(const DataView &imageData) override {
         const auto &type(imgproc::imageType
                          (imageData.first, gltf::size(imageData)));
 
         const auto name(utility::format("%d%s", smIndex, type));
         utility::write(output / name, imageData.first, gltf::size(imageData));
         imageNames.push_back(name);
+    }
+
+    /** Image data.
+     */
+    void image(const fs::path &path) override {
+        imageNames.push_back(path);
     }
 
     void finish() {
