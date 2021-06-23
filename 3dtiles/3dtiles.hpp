@@ -76,7 +76,7 @@ struct Region : CommonBase {
 
 struct Sphere : CommonBase {
     math::Point3 center;
-    double radius;
+    double radius = 0.0;
 
     void update(const Sphere &other);
 };
@@ -113,7 +113,7 @@ struct Tile : CommonBase {
 
     BoundingVolume boundingVolume;
     BoundingVolume viewerRequestVolume;
-    double geometricError;
+    double geometricError = 0.0;
     boost::optional<Refinement> refine;
     boost::optional<math::Matrix4> transform; // serialize as column major!
     boost::optional<TileContent> content;
@@ -138,7 +138,7 @@ struct Asset : CommonBase {
 struct Tileset : CommonBase {
     Asset asset;
     Properties properties;
-    double geometricError;
+    double geometricError = 0.0;
     Tile::pointer root;
 
     ExtensionList extensionsUsed;

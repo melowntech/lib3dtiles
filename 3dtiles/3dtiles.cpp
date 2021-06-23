@@ -705,26 +705,32 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
         Splitter(Tileset &tileset, std::size_t tileLimit)
             : tileset_(tileset), tileLimit_(tileLimit)
         {
-            process(tileset_.root);
+            process(tileset_.root
+                    , boost::get_optional_value_or
+                    (tileset_.root->refine, Refinement::replace));
         }
 
         TilesetWithUri::list subtrees() { return std::move(subtrees_); }
 
     private:
-        std::size_t process(const Tile::pointer &tile) {
+        std::size_t process(const Tile::pointer &tile, Refinement refine)
+        {
             int i(0);
 
             std::size_t size(1);
             for (auto &child : tile->children) {
                 path_.path.push_back(i++);
 
-                auto stSize(process(child));
+                auto childRefine(boost::get_optional_value_or
+                                 (child->refine, refine));
+
+                auto stSize(process(child, childRefine));
                 if (stSize >= tileLimit_) {
                     LOG(info2)
                         << "Will split at <" << path_
                         << ">, subtree size: " << stSize;
 
-                    cut(child, path_);
+                    cut(child, path_, childRefine);
                     // count in replaced child
                     stSize = 1;
                 }
@@ -735,7 +741,9 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
             return size;
         }
 
-        void cut(Tile::pointer &root, const TilePath &path) {
+        void cut(Tile::pointer &root, const TilePath &path
+                 , Refinement refine)
+        {
             const auto uri(utility::format("tileset-%s.json", path));
 
             subtrees_.emplace_back(uri);
@@ -746,6 +754,7 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
             ts.properties = tileset_.properties;
             ts.geometricError = root->geometricError;
             ts.root = std::move(root);
+            ts.root->refine = refine;
             ts.extensionsUsed = tileset_.extensionsUsed;
             ts.extensionsRequired = tileset_.extensionsRequired;
 
@@ -754,6 +763,7 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
             root->geometricError = ts.geometricError;
             root->boundingVolume = ts.root->boundingVolume;
             root->content = boost::in_place();
+            root->content->boundingVolume = ts.root->boundingVolume;
             root->content->uri = uri;
 
             // copy extensions and extras
