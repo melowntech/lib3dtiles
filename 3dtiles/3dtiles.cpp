@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iterator>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/utility/in_place_factory.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -752,7 +754,7 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
             // copy data from original tileset, set root
             ts.asset = tileset_.asset;
             ts.properties = tileset_.properties;
-            ts.geometricError = root->geometricError;
+            ts.geometricError = 2 * root->geometricError;
             ts.root = std::move(root);
             ts.root->refine = refine;
             ts.extensionsUsed = tileset_.extensionsUsed;
