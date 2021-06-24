@@ -762,7 +762,7 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
 
             // regenerate root
             root = std::make_unique<Tile>();
-            root->geometricError = ts.geometricError;
+            root->geometricError = ts.root->geometricError;
             root->boundingVolume = ts.root->boundingVolume;
             root->content = boost::in_place();
             root->content->boundingVolume = ts.root->boundingVolume;
