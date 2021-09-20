@@ -1,5 +1,5 @@
 # bump version here
-set(3dtiles_VERSION 1.2)
+set(3dtiles_VERSION 1.3)
 
 set(3dtiles_EXTRA_SOURCES)
 set(3dtiles_EXTRA_DEPENDS)
@@ -18,6 +18,7 @@ if(MODULE_vts-libs_FOUND)
   list(APPEND 3dtiles_EXTRA_SOURCES
     mesh.hpp mesh.cpp
     encoder.hpp encoder.cpp
+    support.hpp support.cpp
     )
 else()
   message(STATUS "3dtiles: compiling without encoding support (no VTS)")
