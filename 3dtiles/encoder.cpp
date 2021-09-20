@@ -31,21 +31,13 @@
 
 #include "geo/srsdef.hpp"
 
+#include "support.hpp"
 #include "encoder.hpp"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 namespace threedtiles {
-
-namespace {
-
-/** WGS84 in radians
- */
-const auto Wgs84Rad(geo::setAngularUnit
-                    (geo::SrsDefinition(4326), geo::AngularUnit::radian));
-
-} // namespace
 
 void Encoder::Config::configuration(po::options_description &config)
 {
