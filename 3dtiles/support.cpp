@@ -29,7 +29,7 @@
 namespace threedtiles {
 
 /** Tweaked EPSG:4326 to return horizonal component in radians.
- *  NB: datum must be "uknown" otherwise (wrong) shortcut may in conversion may
+ *  NB: datum must be "unknown" otherwise (wrong) shortcut may in conversion may
  *  kick in.
  */
 const geo::SrsDefinition Wgs84Rad(R"RAW(GEOGCS["unknown",
@@ -41,6 +41,7 @@ const geo::SrsDefinition Wgs84Rad(R"RAW(GEOGCS["unknown",
         AUTHORITY["EPSG","8901"]],
     UNIT["radian",1,AUTHORITY["EPSG","9101"]],
     AXIS["Latitude",NORTH],
-    AXIS["Longitude",EAST]])RAW");
+    AXIS["Longitude",EAST]])RAW"
+    , geo::SrsDefinition::Type::wkt);
 
 } // namespace 3dtiles
