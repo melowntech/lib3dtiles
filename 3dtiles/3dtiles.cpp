@@ -457,9 +457,9 @@ void parse(Region &region, const Json::Value &value)
 
     Json::get(region.extents.ll(0), value[0]);
     Json::get(region.extents.ll(1), value[1]);
-    Json::get(region.extents.ll(2), value[2]);
-    Json::get(region.extents.ur(0), value[3]);
-    Json::get(region.extents.ur(1), value[4]);
+    Json::get(region.extents.ur(0), value[2]);
+    Json::get(region.extents.ur(1), value[3]);
+    Json::get(region.extents.ll(2), value[4]);
     Json::get(region.extents.ur(2), value[5]);
 }
 
@@ -782,6 +782,172 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
     };
 
     return Splitter(tileset, tileLimit).subtrees();
+}
+
+namespace {
+
+bool inside(const Box &inner, const Box &outer)
+{
+    LOG(warn2)
+        << "Matching bounding-box bounding volumes not implemented. Yet.";
+    return false;
+    (void) inner;
+    (void) outer;
+}
+
+bool inside(const Region &inner, const Region &outer)
+{
+    return (math::inside(outer.extents, inner.extents.ll)
+            && math::inside(outer.extents, inner.extents.ur));
+}
+
+bool inside(const Sphere &inner, const Sphere &outer)
+{
+    LOG(warn2)
+        << "Matching sphere bounding volumes not implemented. Yet.";
+
+    return false;
+    (void) inner;
+    (void) outer;
+}
+
+} // namespace
+
+bool inside(const BoundingVolume &inner, const BoundingVolume &outer)
+{
+    if (inner.which() != outer.which()) {
+        LOG(warn2)
+            << "Matching different bounding volume types "
+            "not implemented. Yet.";
+        return false;
+    }
+
+    struct Matcher : public boost::static_visitor<bool> {
+        const BoundingVolume &outer;
+
+        Matcher(const BoundingVolume &outer) : outer(outer) { }
+
+        bool operator()(const Box &b) const {
+            return inside(b, boost::get<const Box&>(outer));
+        }
+
+        bool operator()(const Region &r) const {
+            return inside(r, boost::get<const Region&>(outer));
+        }
+
+        bool operator()(const Sphere &s) const {
+            return inside(s, boost::get<const Sphere&>(outer));
+        }
+
+        bool operator()(const boost::blank&) {
+            return true;
+        }
+    } matcher(outer);
+    return boost::apply_visitor(matcher, inner);
+}
+
+std::ostream& operator<<(std::ostream &os, const Box &b)
+{
+    return os << "Box[center=" << b.center
+       << ", x=" << b.x
+       << ", y=" << b.y
+       << ", z=" << b.z
+       << "]";
+}
+
+std::ostream& operator<<(std::ostream &os, const Region &r)
+{
+    return os << "Region[" << r.extents << "]";
+}
+
+std::ostream& operator<<(std::ostream &os, const Sphere &s)
+{
+    return os << "Sphere[center=" << s.center
+              << ", radius=" << s.radius
+              << "]";
+}
+
+std::ostream& operator<<(std::ostream &os, const BoundingVolume &bv)
+{
+    struct Printer : public boost::static_visitor<void> {
+        std::ostream &os;
+        Printer(std::ostream &os) : os(os) {}
+
+        void operator()(const Box &b) {
+            os << b;
+        }
+
+        void operator()(const Region &r) {
+            os << r;
+        }
+
+        void operator()(const Sphere &s) {
+            os << s;
+        }
+
+        void operator()(const boost::blank&) {
+            os << "[Invalid Bounding Volume]";
+        }
+    } printer(os);
+    boost::apply_visitor(printer, bv);
+    return os;
+}
+
+namespace dump {
+
+template <typename TileT, typename Op>
+void traverseTiles(TileT &root, Op op) {
+    struct Traverser {
+        Op op;
+        Traverser(Op op) : op(op) {}
+        void process(TileT &tile, TilePath &path, TileT *parent = nullptr)
+        {
+            op(tile, path, parent);
+
+            int i(0);
+            for (const auto &child : tile.children) {
+                path.path.push_back(i++);
+                process(*child, path, &tile);
+                path.path.pop_back();
+            }
+        }
+    } t(op);
+
+    TilePath path;
+    t.process(root, path);
+}
+
+bool checkExtents(const Tile &tile, const Tile *parent)
+{
+    if (!parent) { return true; }
+
+    return inside(tile.boundingVolume, parent->boundingVolume);
+}
+
+} // namespace dump
+
+void dumpMetadata(std::ostream &os, const Tileset &ts)
+{
+    dump::traverseTiles(*ts.root, [&os](const Tile &tile, const TilePath &path
+                                        , const Tile *parent)
+    {
+        os
+            << path.depth() << "\t"
+            << utility::join(path.path, "-", "root") << "\textents: "
+            << tile.boundingVolume;
+
+        if (!dump::checkExtents(tile, parent)) {
+            os << " out-of-bounds!";
+        }
+
+        if (tile.content) {
+            os << "\tcontent: " << tile.content->uri;
+        } else {
+            os << "\tno content";
+        }
+
+        os << "\n";
+    });
 }
 
 } // namespace threedtiles

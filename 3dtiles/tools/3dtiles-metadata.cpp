@@ -108,59 +108,14 @@ usage
     return false;
 }
 
-void print(std::ostream &os, const tdt::BoundingVolume &bv)
-{
-    struct Printer : public boost::static_visitor<void> {
-        std::ostream &os;
-        Printer(std::ostream &os) : os(os) {}
-
-        void operator()(const tdt::Box &b) {
-            os << "Box[center=" << b.center
-               << ", x=" << b.x
-               << ", y=" << b.y
-               << ", z=" << b.z
-               << "]";
-        }
-
-        void operator()(const tdt::Region &r) {
-            os << "Region[" << r.extents << "]";
-        }
-
-        void operator()(const tdt::Sphere &s) {
-            os << "Sphere[center=" << s.center
-               << ", radius=" << s.radius
-               << "]";
-        }
-
-        void operator()(const boost::blank&) {
-            os << "[Invalid Bounding Volume]";
-        }
-    } printer(os);
-    boost::apply_visitor(printer, bv);
-}
-
 int Metadata::run()
 {
     tdt::Archive ar(input_, {}, includeExternal_);
 
     const auto &ts(ar.tileset());
 
-    std::cout << std::fixed;
-
-    traverse(*ts.root, [](const tdt::Tile &tile, const tdt::TilePath &path)
-    {
-        std::cout
-            << path.depth() << "\t"
-            << utility::join(path.path, "-", "root") << "\textents: ";
-        print(std::cout, tile.boundingVolume);
-        if (tile.content) {
-            std::cout << "\tcontent: " << tile.content->uri;
-        } else {
-            std::cout << "\tno content";
-        }
-        std::cout << "\n";
-    });
-
+    std::cout << std::fixed << std::setprecision(10);
+    dumpMetadata(std::cout, ts);
     std::cout << std::flush;
 
     return EXIT_SUCCESS;

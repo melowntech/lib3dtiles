@@ -91,6 +91,13 @@ using BoundingVolume = boost::variant<boost::blank, Box, Region, Sphere>;
 
 inline bool valid(const BoundingVolume &bv) { return bv.which(); }
 
+bool inside(const BoundingVolume &inner, const BoundingVolume &outer);
+
+std::ostream& operator<<(std::ostream &os, const Box &b);
+std::ostream& operator<<(std::ostream &os, const Region &r);
+std::ostream& operator<<(std::ostream &os, const Sphere &s);
+std::ostream& operator<<(std::ostream &os, const BoundingVolume &bv);
+
 struct Property : CommonBase {
     double minimum;
     double maximum;
@@ -230,6 +237,10 @@ void traverse(Tile &root, Op op);
 /** Deep copy, when needed.
  */
 Tileset clone(const Tileset &ts);
+
+/** Dumps tileset metadata in human readable format.
+ */
+void dumpMetadata(std::ostream &os, const Tileset &ts);
 
 // inlines
 
