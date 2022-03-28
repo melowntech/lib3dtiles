@@ -93,7 +93,9 @@ void include(const Archive &archive, Tile::pointer &root)
 
     // some content, recurse to external tileset
     if (ba::iends_with(root->content->uri, ".json")) {
+#ifndef _MSC_VER // omp task is not supported by msvc
         UTILITY_OMP(task shared(archive, root))
+#endif
         {
             root = archive.tileset(root->content->uri, false, true).root;
             include(archive, root);
