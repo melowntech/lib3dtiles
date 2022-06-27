@@ -126,6 +126,9 @@ struct Tile : CommonBase {
     boost::optional<TileContent> content;
     Tile::list children;
 
+    // extra comment (not stored)
+    std::string comment;
+
     /** Return number of tiles in subtree rooted in this tile.
      */
     std::size_t subtreeSize() const;
