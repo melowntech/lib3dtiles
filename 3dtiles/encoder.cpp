@@ -256,7 +256,7 @@ void Encoder::Detail::process(const vts::TileId &tileId, Tile *parent)
 
     // proces children -> go down
     for (auto child : vts::children(tileId)) {
-#ifndef _MSC_VER // omp task is not supported by msvc
+#if !defined(_MSC_VER) || defined(_WIN_OMP_EXPERIMENTAL)
         UTILITY_OMP(task)
 #endif
         {
