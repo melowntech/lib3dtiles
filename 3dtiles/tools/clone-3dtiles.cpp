@@ -167,7 +167,7 @@ void Clone3dTiles::process(const tdt::Archive &archive, tdt::Tileset &&ts
         // replace path (make relative)
         tile.content->uri
             = utility::lexically_relative
-            (outputPath, tsOutputPath.parent_path()).string();
+            (outputPath, tsOutputPath.parent_path()).generic_string();
     });
 
     // build path and store
