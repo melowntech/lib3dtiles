@@ -233,7 +233,7 @@ void Encoder::Detail::process(const vts::TileId &tileId, Tile *parent)
 
         t.content->uri = saveTile
             (output_, tileId, *texturedMesh.mesh, *texturedMesh.atlas)
-            .string();
+            .generic_string();
 
         Done done(++generated_, total_);
 
