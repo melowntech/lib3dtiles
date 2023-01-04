@@ -35,6 +35,8 @@ set(3dtiles_SOURCES
   3dtiles.hpp 3dtiles.cpp
   b3dm.hpp b3dm.cpp
 
+  extensions/mlwn/srs.hpp extensions/mlwn/srs.cpp
+
   ${3dtiles_EXTRA_SOURCES}
   )
 
