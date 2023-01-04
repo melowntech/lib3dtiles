@@ -751,6 +751,9 @@ TilesetWithUri::list split(Tileset &tileset, std::size_t tileLimit)
             subtrees_.emplace_back(uri);
             auto &ts(subtrees_.back().tileset);
 
+            // copy common stuff (extensions etc)
+            static_cast<CommonBase&>(ts) = static_cast<CommonBase&>(tileset_);
+
             // copy data from original tileset, set root
             ts.asset = tileset_.asset;
             ts.properties = tileset_.properties;
