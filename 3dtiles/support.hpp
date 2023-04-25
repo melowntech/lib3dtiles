@@ -27,13 +27,19 @@
 #ifndef threedtiles_support_hpp_included_
 #define threedtiles_support_hpp_included_
 
+#include <functional>
+#include <vector>
+
+#include "math/geometry_core.hpp"
+
 #include "geo/srsdef.hpp"
 
 namespace threedtiles {
 
-/** Wgs84 long/lat in radians
- */
-extern const geo::SrsDefinition Wgs84Rad;
+using Point3Convertor = std::function<math::Point3(const math::Point3&)>;
+using Point3Convertors = std::vector<Point3Convertor>;
+
+Point3Convertor srs2Wgs84Rad(const geo::SrsDefinition &srs);
 
 } // namespace 3dtiles
 

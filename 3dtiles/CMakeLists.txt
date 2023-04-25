@@ -1,5 +1,5 @@
 # bump version here
-set(3dtiles_VERSION 1.3)
+set(3dtiles_VERSION 1.4)
 
 set(3dtiles_EXTRA_SOURCES)
 set(3dtiles_EXTRA_DEPENDS)
