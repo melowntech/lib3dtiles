@@ -74,16 +74,19 @@ void write(std::ostream &os, const Header &header)
     bin::write<std::uint32_t>(os, header.batchTableBinaryByteLength);
 }
 
-template <int padding = 8>
-void pad(std::ostream &os, char chr = ' ')
+template <int alignment = 8>
+void pad(std::ostream &os, std::size_t offset = 0, char chr = ' ')
 {
-    if (const auto rem = std::size_t(os.tellp()) % padding) {
-        std::fill_n(std::ostream_iterator<char>(os), padding - rem, chr);
+    offset += os.tellp();
+    if (const auto used = (offset % alignment)) {
+        const auto padding(alignment - used);
+        std::fill_n(std::ostream_iterator<char>(os), padding, chr);
     }
 }
 
 void featureTable(std::ostream &os
-                  , const math::Point3 &rtcCenter)
+                  , const math::Point3 &rtcCenter
+                  , std::size_t offset = 0)
 {
     Json::Value ft(Json::objectValue);
     ft["BATCH_LENGTH"] = 0;
@@ -95,7 +98,7 @@ void featureTable(std::ostream &os
     }
 
     Json::write(os, ft, false);
-    pad(os, ' ');
+    pad(os, offset, ' ');
 }
 
 } // namespace detail
@@ -111,17 +114,18 @@ void b3dm(std::ostream &os, const gltf::Model &model
 
     // serialize and measure feature table.
     std::stringstream fs;
-    detail::featureTable(fs, rtcCenter);
+    detail::featureTable(fs, rtcCenter, header.byteLength);
     header.featureTableJSONByteLength = fs.tellp();
     header.byteLength += header.featureTableJSONByteLength;
 
     // serialize and measure GLB archive
     std::stringstream gs;
     gltf::glb(gs, model, srcDir);
+    detail::pad(gs, header.byteLength, 0);
     header.byteLength += gs.tellp();
 
+    // paste together
     detail::write(os, header);
-
     os << fs.rdbuf();
     os << gs.rdbuf();
 }
