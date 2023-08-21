@@ -26,22 +26,30 @@
 
 #include "support.hpp"
 
+#include "geo/csconvertor.hpp"
+
 namespace threedtiles {
 
-/** Tweaked EPSG:4326 to return horizonal component in radians.
- *  NB: datum must be "unknown" otherwise (wrong) shortcut may in conversion may
- *  kick in.
- */
-const geo::SrsDefinition Wgs84Rad(R"RAW(GEOGCS["unknown",
-    DATUM["unknown",
-        SPHEROID["WGS 84",6378137,298.257223563,
-            AUTHORITY["EPSG","7030"]],
-        AUTHORITY["EPSG","6326"]],
-    PRIMEM["Greenwich",0,
-        AUTHORITY["EPSG","8901"]],
-    UNIT["radian",1,AUTHORITY["EPSG","9101"]],
-    AXIS["Latitude",NORTH],
-    AXIS["Longitude",EAST]])RAW"
-    , geo::SrsDefinition::Type::wkt);
+namespace {
+
+const geo::SrsDefinition wgs84(4979);
+
+inline double deg2rad(double d) {
+    return d * M_PI / 180.;
+}
+
+} // namespace
+
+Point3Convertor srs2Wgs84Rad(const geo::SrsDefinition &srs)
+{
+    geo::CsConvertor srs2wgs84(srs, wgs84);
+
+    return [srs2wgs84=std::move(srs2wgs84)](const math::Point3 &p) {
+        auto pp(srs2wgs84(p));
+        pp(0) = deg2rad(pp(0));
+        pp(1) = deg2rad(pp(1));
+        return pp;
+    };
+}
 
 } // namespace 3dtiles

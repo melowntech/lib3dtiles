@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <iosfwd>
+#include <new>
 
 #include <vector>
 #include <boost/any.hpp>
@@ -37,6 +38,7 @@
 
 #include "utility/enum-io.hpp"
 #include "utility/openmp.hpp"
+#include "utility/raise.hpp"
 
 #include "math/geometry_core.hpp"
 
@@ -98,12 +100,7 @@ std::ostream& operator<<(std::ostream &os, const Region &r);
 std::ostream& operator<<(std::ostream &os, const Sphere &s);
 std::ostream& operator<<(std::ostream &os, const BoundingVolume &bv);
 
-struct Property : CommonBase {
-    double minimum;
-    double maximum;
-
-    Property() : minimum(), maximum() {}
-};
+using Property = boost::any;
 
 using Properties = std::map<std::string, Property>;
 
@@ -245,6 +242,39 @@ Tileset clone(const Tileset &ts);
  */
 void dumpMetadata(std::ostream &os, const Tileset &ts);
 
+/** Adds given extension to extensions object.
+ */
+template <typename Ext>
+void addExtension(Extensions &extensions, const Ext &extension);
+
+/** Gets given extension from extensions object.
+ */
+template <typename Ext>
+Ext getExtension(const Extensions &extensions);
+
+/** Gets given extension from extensions object.
+ *  Not throwing version.
+ */
+template <typename Ext>
+boost::optional<Ext> getExtension(const Extensions &extensions
+                                  , std::nothrow_t);
+
+/** Adds given extension to any entity.
+ */
+template <typename Ext>
+void addExtension(CommonBase &any, const Ext &extension);
+
+/** Gets given extension from any entity.
+ */
+template <typename Ext>
+Ext getExtension(CommonBase &any);
+
+/** Gets given extension from any entity.
+ *  Not throwing version.
+ */
+template <typename Ext>
+boost::optional<Ext> getExtension(CommonBase &any, std::nothrow_t);
+
 // inlines
 
 namespace detail {
@@ -299,6 +329,63 @@ inline std::size_t Tile::subtreeDepth() const {
                         depth = std::max(depth, std::size_t(path.depth()));
                     });
     return depth;
+}
+
+template <typename E>
+void addExtension(Extensions &extensions, const E &value)
+{
+    Extension ext;
+    build(ext, value);
+    extensions.emplace(E::extensionName, ext);
+}
+
+template <typename E>
+boost::optional<E> getExtension(const Extensions &extensions, std::nothrow_t)
+{
+    auto fextensions(extensions.find(E::extensionName));
+    if (fextensions == extensions.end()) { return boost::none; }
+
+    const auto &ext(fextensions->second);
+
+    E value;
+    parse(value, ext);
+    return value;
+}
+
+template <typename E>
+E getExtension(const Extensions &extensions)
+{
+    auto value(getExtension<E>(extensions, std::nothrow));
+    if (!value) {
+        throw utility::raise<std::logic_error>
+            ("Extension <%s> not found.", E::extensionName);
+    }
+    return *value;
+}
+
+/** Adds given extension to any entity.
+ */
+template <typename Ext>
+void addExtension(CommonBase &any, const Ext &extension)
+{
+    return addExtension(any.extensions, extension);
+}
+
+/** Gets given extension from any entity.
+ */
+template <typename Ext>
+Ext getExtension(CommonBase &any)
+{
+    return getExtension<Ext>(any.extensions);
+}
+
+/** Gets given extension from any entity.
+ *  Not throwing version.
+ */
+template <typename Ext>
+boost::optional<Ext> getExtension(CommonBase &any, std::nothrow_t)
+{
+    return getExtension<Ext>(any.extensions);
 }
 
 } // namespace threedtiles

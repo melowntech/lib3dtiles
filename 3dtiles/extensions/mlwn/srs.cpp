@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 Melown Technologies SE
+ * Copyright (c) 2023 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,23 +24,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef threedtiles_support_hpp_included_
-#define threedtiles_support_hpp_included_
+#include "jsoncpp/as.hpp"
 
-#include <functional>
-#include <vector>
+#include "srs.hpp"
 
-#include "math/geometry_core.hpp"
+namespace threedtiles { namespace extensions { namespace mlwn {
 
-#include "geo/srsdef.hpp"
+// allocate space for this constant
+constexpr char Srs::extensionName[];
 
-namespace threedtiles {
+void build(Extension &ext, const Srs &srs)
+{
+    Json::Value j(Json::objectValue);
+    j["srs"] = srs.srs;
+    ext = j;
+}
 
-using Point3Convertor = std::function<math::Point3(const math::Point3&)>;
-using Point3Convertors = std::vector<Point3Convertor>;
+void parse(Srs &srs, const Extension &ext)
+{
+    const auto &j(boost::any_cast<const Json::Value&>(ext));
+    Json::get(srs.srs, j);
+}
 
-Point3Convertor srs2Wgs84Rad(const geo::SrsDefinition &srs);
-
-} // namespace 3dtiles
-
-#endif // threedtiles_support_hpp_included_
+} } } // namespace threedtiles::extensions::mlwn

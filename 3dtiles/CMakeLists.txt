@@ -1,5 +1,5 @@
 # bump version here
-set(3dtiles_VERSION 1.3)
+set(3dtiles_VERSION 1.4)
 
 set(3dtiles_EXTRA_SOURCES)
 set(3dtiles_EXTRA_DEPENDS)
@@ -34,6 +34,8 @@ define_module(LIBRARY 3dtiles=${3dtiles_VERSION}
 set(3dtiles_SOURCES
   3dtiles.hpp 3dtiles.cpp
   b3dm.hpp b3dm.cpp
+
+  extensions/mlwn/srs.hpp extensions/mlwn/srs.cpp
 
   ${3dtiles_EXTRA_SOURCES}
   )

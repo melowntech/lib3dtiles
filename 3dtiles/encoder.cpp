@@ -149,7 +149,7 @@ public:
         , tileset_(owner_.tileset_), output_(owner_.output_)
         , ti_(owner_.validTiles_), fullTree_(ti_)
         , generated_(), total_(ti_.count())
-        , srs2rad_(config_.srs, Wgs84Rad)
+        , srs2rad_(srs2Wgs84Rad(config_.srs))
     {
         fullTree_.makeAbsolute().complete();
     }
@@ -189,7 +189,7 @@ private:
     std::atomic<std::size_t> generated_;
     std::size_t total_;
 
-    geo::CsConvertor srs2rad_;
+    Point3Convertor srs2rad_;
 };
 
 void Encoder::Detail::process(const vts::TileId &tileId, Tile *parent)
